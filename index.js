@@ -1,50 +1,32 @@
-const Jimp = require("jimp");
-const fs = require("fs");
 const fonts = require("./constants/fonts");
+const properties = require("./constants/properties");
+const { downloadImage } = require("./images");
+const { cropImage, addTextToImage } = require("./jimp");
+const { textCompletion } = require("./openai");
+const { getImage } = require("./pexel");
+const { searchPhoto } = require("./unsplash");
+const { getRandomQuote } = require("./zenquotes");
 
-const source_folder = "test_images";
-const fileName = "goku";
-const extension = "png";
-const imageCaption = "Be willing to be a beginner every single morning";
-const font_location = fonts.PLUS_JAKARTA_SANS;
-
-const dest_folder = "edited";
-const new_name = Date.now();
-
-if (!fs.existsSync(dest_folder)) {
-  fs.mkdirSync(dest_folder);
-}
-
-Jimp.read(`${source_folder}/${fileName}.${extension}`)
-  .then(function (image) {
-    const textImage = new Jimp(
-      image.bitmap.width,
-      image.bitmap.height,
-      0x0,
-      (err) => {
-        //((0x0 = 0 = rgba(0, 0, 0, 0)) = transparent)
-        if (err) throw err;
-      }
-    );
-    return Jimp.loadFont(font_location).then((font) => {
-      textImage.print(
-        font,
-        0,
-        0,
-        {
-          text: imageCaption,
-          alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-          alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
-        },
-        image.bitmap.width,
-        image.bitmap.height
-      );
-      textImage.color([{ apply: "xor", params: ["#ffffff"] }]);
-      image
-        .blit(textImage, 0, 0)
-        .write(`${dest_folder}/${new_name}.${extension}`);
-    });
-  })
-  .catch(function (err) {
-    console.error(err);
+(async () => {
+  // const pexel_image = await getImage("ferrari"); // from Pexel
+  const unsplash_image = await searchPhoto("peace"); // from Unsplash
+  // const downloaded_image_pexel = await downloadImage(
+  //   pexel_image.src.large2x,
+  //   pexel_image.alt
+  // );
+  const downloaded_image_unsplash = await downloadImage(
+    unsplash_image.urls.regular,
+    unsplash_image.description
+      ? unsplash_image.description
+      : unsplash_image.alt_description
+  );
+  const cropped_image = await cropImage({
+    imagePath: downloaded_image_unsplash,
   });
+  const quote = (await getRandomQuote()).q;
+  await addTextToImage({
+    imagePath: cropped_image ? cropped_image : downloaded_image_unsplash,
+    imageCaption: quote,
+    textFont: fonts.HELVETICA_BOLD,
+  });
+})();

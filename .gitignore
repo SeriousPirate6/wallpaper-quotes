@@ -1,4 +1,8 @@
+.env
+bwfs
+output
 edited
+resized
 test_images
 node_modules
 /package-lock.json
