@@ -2,6 +2,7 @@ const fs = require("fs");
 const Jimp = require("jimp");
 const path = require("path");
 const fonts = require("./constants/fonts");
+const properties = require("./constants/properties");
 
 const isValidPath = (path) => {
   if (!fs.existsSync(path)) {
@@ -14,36 +15,69 @@ const isValidPath = (path) => {
 };
 
 module.exports = {
-  cropImage: (cropImage = async ({
+  adjustDimensionsAndRatio: (adjustDimensionsAndRatio = ({
     imagePath,
     width = 1080, // IG standards
     height = 1350,
   }) => {
     if (!isValidPath(imagePath)) return;
+    return new Promise((resolve, reject) => {
+      Jimp.read(imagePath, function (err, image) {
+        if (err) reject(err);
+        const file_ext = path.extname(imagePath);
+        const file_name = path.parse(imagePath).name;
 
-    Jimp.read(imagePath, function (err, image) {
-      if (err) throw err;
-      if (width > image.bitmap.width || height > image.bitmap.height) {
-        console.warn("The image is smaller than the dimensions provided.");
-        return;
-      }
-      const file_ext = path.extname(imagePath);
-      const file_name = path.parse(imagePath).name;
+        const timestamp = Date.now();
+        const dest_folder = "resized";
+        if (!fs.existsSync(dest_folder)) fs.mkdirSync(dest_folder);
 
-      const timestamp = Date.now();
-      const dest_folder = "resized";
-      if (!fs.existsSync(dest_folder)) fs.mkdirSync(dest_folder);
+        const width_diff = width - image.bitmap.width;
+        const height_diff = height - image.bitmap.height;
+        if (width_diff > 0 || height_diff > 0) {
+          // if one of the two measures are smaller than the corresponding target measure, we make sure to resize it.
+          if (width_diff >= height_diff) {
+            // if the difference gap is bigger in width, we make sure that width will be at least as its target measure.
+            image.resize(
+              width,
+              (width / image.bitmap.width) * image.bitmap.height
+            );
+          } else {
+            // same thing in case height gap is bigger than the one of width
+            image.resize(
+              (height / image.bitmap.height) * image.bitmap.width,
+              height
+            );
+          }
+        } else {
+          // if both sizes are bigger than their target measures, we proceed doing the opposite compare to above
+          if (width_diff > height_diff) {
+            // the sign is inverted because the difference, if present, is negative in this case
+            image.resize(
+              width,
+              (width / image.bitmap.width) * image.bitmap.height
+            );
+          } else {
+            image.resize(
+              (height / image.bitmap.height) * image.bitmap.width,
+              height
+            );
+          }
+        }
+        image
+          .crop(
+            image.bitmap.width - width > 0
+              ? (image.bitmap.width - width) / 2
+              : 0,
+            image.bitmap.height - height > 0
+              ? (image.bitmap.height - height) / 2
+              : 0,
+            width,
+            height
+          )
+          .write(`${dest_folder}/${file_name}_${timestamp}${file_ext}`);
 
-      image
-        .crop(
-          (image.bitmap.width - width) / 2,
-          (image.bitmap.height - height) / 2,
-          width,
-          height
-        )
-        .write(`${dest_folder}/${file_name}_${timestamp}${file_ext}`);
-
-      return `${dest_folder}/${file_name}_${timestamp}${file_ext}`;
+        resolve(`${dest_folder}/${file_name}_${timestamp}${file_ext}`);
+      });
     });
   }),
 
@@ -82,13 +116,20 @@ module.exports = {
             alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
             alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
           },
-          image.bitmap.width,
+          image.bitmap.width - properties.TEXT_WIDTH,
           image.bitmap.height
         );
         textImage.color([{ apply: "xor", params: ["#ffffff"] }]);
-        image
-          .blit(textImage, 0, 0)
-          .write(`${dest_folder}/${file_name}_${timestamp}.${file_ext}`);
+        Jimp.read("quote-template.png", (err, backgr) => {
+          if (err) {
+            console.log(err);
+          } else {
+            image
+              .blit(backgr, 0, 0)
+              .blit(textImage, properties.TEXT_WIDTH / 2, 0)
+              .write(`${dest_folder}/${file_name}_${timestamp}.${file_ext}`);
+          }
+        });
       })
       .catch(function (err) {
         console.error(err);
