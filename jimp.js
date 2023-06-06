@@ -2,7 +2,9 @@ const fs = require("fs");
 const Jimp = require("jimp");
 const path = require("path");
 const fonts = require("./constants/fonts");
+const { cutString } = require("./utility/utility");
 const properties = require("./constants/properties");
+const { getImageTypeFromUrl } = require("./images");
 
 const isValidPath = (path) => {
   if (!fs.existsSync(path)) {
@@ -15,17 +17,25 @@ const isValidPath = (path) => {
 };
 
 module.exports = {
-  adjustDimensionsAndRatio: (adjustDimensionsAndRatio = ({
+  adjustDimensionsAndRatio: (adjustDimensionsAndRatio = async ({
     imagePath,
     width = 1080, // IG standards
     height = 1350,
   }) => {
-    if (!isValidPath(imagePath)) return;
+    // if (!isValidPath(imagePath)) return;
+    const image_type = await getImageTypeFromUrl(imagePath);
+
     return new Promise((resolve, reject) => {
       Jimp.read(imagePath, function (err, image) {
         if (err) reject(err);
-        const file_ext = path.extname(imagePath);
-        const file_name = path.parse(imagePath).name;
+
+        const file_ext = image_type
+          ? `.${image_type.split("/")[1]}`
+          : path.extname(imagePath);
+        const file_name = cutString(
+          path.parse(imagePath).name.replace(/[^a-z0-9]|\s+|\r?\n|\r/gim, "_"),
+          10
+        );
 
         const timestamp = Date.now();
         const dest_folder = "resized";
@@ -85,6 +95,8 @@ module.exports = {
     imagePath,
     imageCaption = "Pass your text throught the param 'imageCaption'",
     textFont = Jimp.FONT_SANS_128_BLACK,
+    authorName = "Author name here",
+    authorFont = Jimp.FONT_SANS_32_BLACK,
   }) => {
     if (!isValidPath(imagePath)) return;
 
@@ -107,27 +119,67 @@ module.exports = {
           }
         );
         const font = await Jimp.loadFont(textFont);
+        const font2 = await Jimp.loadFont(authorFont);
         textImage.print(
           font,
           0,
           0,
           {
-            text: imageCaption,
+            text: `"${imageCaption.trim()}"`,
             alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
             alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
           },
           image.bitmap.width - properties.TEXT_WIDTH,
           image.bitmap.height
         );
+        textImage.print(
+          font2,
+          0,
+          0,
+          {
+            text: `~ ${authorName.trim()}`,
+            alignmentX: Jimp.HORIZONTAL_ALIGN_RIGHT,
+            alignmentY: Jimp.VERTICAL_ALIGN_BOTTOM,
+          },
+          image.bitmap.width - 300,
+          image.bitmap.height - 200
+        );
         textImage.color([{ apply: "xor", params: ["#ffffff"] }]);
-        Jimp.read("quote-template.png", (err, backgr) => {
+        Jimp.read(properties.QUOTE_FRAME, (err, backgr) => {
           if (err) {
             console.log(err);
           } else {
-            image
-              .blit(backgr, 0, 0)
-              .blit(textImage, properties.TEXT_WIDTH / 2, 0)
-              .write(`${dest_folder}/${file_name}_${timestamp}.${file_ext}`);
+            Jimp.read(
+              authorName.toLowerCase().trim() != "unknown"
+                ? `${process.env.ZENQUOTE_IMAGES}\\${authorName
+                    .toLowerCase()
+                    .replaceAll(" ", "-")
+                    .replaceAll(".", "_")}.jpg`
+                : properties.UNKNOWN_AUTHOR,
+              async (err, author_image) => {
+                if (err) {
+                  console.log(err);
+                } else {
+                  const mask = await Jimp.read(properties.CIRCLE_MASK);
+                  const masked_image = author_image.resize(
+                    mask.bitmap.width,
+                    mask.bitmap.height
+                  );
+                  mask.mask(masked_image, 0, 0);
+                  image
+                    .blit(backgr, 0, 0)
+                    .blit(textImage, properties.TEXT_WIDTH / 2, 0)
+                    .blit(
+                      mask,
+                      image.bitmap.width - 176,
+                      image.bitmap.height - 175
+                    )
+                    .write(
+                      `${dest_folder}/${file_name}_${timestamp}.${file_ext}`
+                    );
+                }
+              }
+            );
           }
         });
       })
@@ -143,3 +195,4 @@ module.exports = {
 // addTextToImage({
 //   imagePath: "https://images.pexels.com/photos/136415/pexels-photo-136415.jpeg",
 // });
+// addMaskImage();

@@ -5,4 +5,13 @@ module.exports = Object.freeze({
   PROMPT_IMAGE_DESCRIPTION: `given a sentence, find an image to attach to it in one word.
     sentence: ${PROMPT_PLACEHOLDER}
     answer:`,
+
+  // JIMP
+  TEXT_WIDTH: 400,
+
+  // TEMPLATES
+  CIRCLE_MASK: "templates/circle_mask.png",
+  QUOTE_FRAME: "templates/quote-template.png",
+  UNKNOWN_AUTHOR:
+    "https://www.maven-infotech.com/wp-content/uploads/2014/11/Iran-Faces-Mehdi-Alizadeh-Fakhrabad.png",
 });

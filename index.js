@@ -6,31 +6,26 @@ const {
   addTextToImage,
   adjustDimensionsAndRatio,
 } = require("./jimp");
-const { textCompletion } = require("./openai");
+const { getImageKeyWord } = require("./openai");
 const { getImage } = require("./pexel");
 const { searchPhoto } = require("./unsplash");
+const { cutString } = require("./utility/utility");
 const { getRandomQuote } = require("./zenquotes");
 
 (async () => {
-  // const pexel_image = await getImage("ferrari"); // from Pexel
-  const unsplash_image = await searchPhoto("door"); // from Unsplash
-  // const downloaded_image_pexel = await downloadImage(
-  //   pexel_image.src.large2x,
-  //   pexel_image.alt
-  // );
-  const downloaded_image_unsplash = await downloadImage(
-    unsplash_image.urls.regular,
-    unsplash_image.description
-      ? unsplash_image.description
-      : unsplash_image.alt_description
-  );
+  const quote = await getRandomQuote();
+  // const image_description = await getImageKeyWord(quote.q);
+  const image_description = "discipline";
+  const unsplash_image = await searchPhoto(image_description); // from Unsplash
+
   const cropped_image = await adjustDimensionsAndRatio({
-    imagePath: downloaded_image_unsplash,
+    imagePath: unsplash_image.urls.regular,
   });
-  const quote = (await getRandomQuote()).q;
   await addTextToImage({
     imagePath: cropped_image,
-    imageCaption: quote,
-    textFont: fonts.HELVETICA_BOLD_SPACED,
+    imageCaption: quote.q,
+    textFont: fonts.HELVETICA_BOLD,
+    authorName: quote.a,
+    authorFont: fonts.HELVETICA_SMALL,
   });
 })();

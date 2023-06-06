@@ -12,7 +12,10 @@ module.exports = {
 
     const response = await openai.createCompletion({
       model: properties.TEXT_DA_VINCI,
-      prompt: properties.PROMPT_IMAGE_DESCRIPTION.replace("$sentene$", prompt),
+      prompt: properties.PROMPT_IMAGE_DESCRIPTION.replace(
+        properties.PROMPT_PLACEHOLDER,
+        prompt
+      ),
       max_tokens: 7,
       temperature: 0,
     });
@@ -20,6 +23,9 @@ module.exports = {
     console.log(response.data);
     return response.data;
   }),
-};
 
-// getCompletion(properties.PROMPT_IMAGE_DESCRIPTION);
+  getImageKeyWord: async (prompt) => {
+    const response = await getCompletion(prompt);
+    return response.choices[0].text.trim();
+  },
+};

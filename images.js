@@ -26,5 +26,18 @@ module.exports = {
     });
   }),
 
+  getImageTypeFromUrl: (getImageTypeFromUrl = async (url) => {
+    try {
+      const reponse = await fetch(url, {
+        method: "HEAD",
+      });
+      return reponse.headers.get("Content-Type");
+    } catch {
+      console.log(
+        `The url: '${url}' is not valid or does not contains an image.`
+      );
+    }
+  }),
+
   deleteImage: (deleteImage = async (filepath) => {}),
 };
