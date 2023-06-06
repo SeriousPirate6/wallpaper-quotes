@@ -4,7 +4,8 @@ const path = require("path");
 const fonts = require("./constants/fonts");
 const { cutString } = require("./utility/utility");
 const properties = require("./constants/properties");
-const { getImageTypeFromUrl } = require("./images");
+const { getImageTypeFromUrl, deleteImage } = require("./images");
+const { constants } = require("buffer");
 
 const isValidPath = (path) => {
   if (!fs.existsSync(path)) {
@@ -22,8 +23,8 @@ module.exports = {
     width = 1080, // IG standards
     height = 1350,
   }) => {
-    // if (!isValidPath(imagePath)) return;
     const image_type = await getImageTypeFromUrl(imagePath);
+    if (!image_type && !isValidPath(imagePath)) return;
 
     return new Promise((resolve, reject) => {
       Jimp.read(imagePath, function (err, image) {
@@ -38,7 +39,7 @@ module.exports = {
         );
 
         const timestamp = Date.now();
-        const dest_folder = "resized";
+        const dest_folder = properties.DIR_RESIZED;
         if (!fs.existsSync(dest_folder)) fs.mkdirSync(dest_folder);
 
         const width_diff = width - image.bitmap.width;
@@ -104,7 +105,7 @@ module.exports = {
     const file_name = imagePath.replace(/^.*[\\\/]/, "");
 
     const timestamp = Date.now();
-    const dest_folder = "output";
+    const dest_folder = properties.DIR_OUTPUT;
     if (!fs.existsSync(dest_folder)) fs.mkdirSync(dest_folder);
 
     Jimp.read(`${imagePath}`)
@@ -150,7 +151,7 @@ module.exports = {
             console.log(err);
           } else {
             Jimp.read(
-              authorName.toLowerCase().trim() != "unknown"
+              authorName.toLowerCase().trim() != properties.UNKNOWN_AUTHOR
                 ? `${process.env.ZENQUOTE_IMAGES}\\${authorName
                     .toLowerCase()
                     .replaceAll(" ", "-")
@@ -171,12 +172,13 @@ module.exports = {
                     .blit(textImage, properties.TEXT_WIDTH / 2, 0)
                     .blit(
                       mask,
-                      image.bitmap.width - 176,
-                      image.bitmap.height - 175
+                      image.bitmap.width - properties.AUTHOR_IMAGE_OFFSET_X,
+                      image.bitmap.height - properties.AUTHOR_IMAGE_OFFSET_Y
                     )
                     .write(
                       `${dest_folder}/${file_name}_${timestamp}.${file_ext}`
                     );
+                  await deleteImage(properties.DIR_RESIZED);
                 }
               }
             );
@@ -188,11 +190,3 @@ module.exports = {
       });
   }),
 };
-
-// cropImage({
-//   imagePath: "Tiger_Looking_Ferocious.jpeg",
-// });
-// addTextToImage({
-//   imagePath: "https://images.pexels.com/photos/136415/pexels-photo-136415.jpeg",
-// });
-// addMaskImage();

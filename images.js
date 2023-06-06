@@ -39,5 +39,7 @@ module.exports = {
     }
   }),
 
-  deleteImage: (deleteImage = async (filepath) => {}),
+  deleteImage: (deleteImage = async (dir_output) => {
+    fs.rmSync(dir_output, { recursive: true });
+  }),
 };
