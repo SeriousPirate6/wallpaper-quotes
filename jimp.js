@@ -5,7 +5,7 @@ const fonts = require("./constants/fonts");
 const { cutString } = require("./utility/utility");
 const properties = require("./constants/properties");
 const { getImageTypeFromUrl, deleteImage } = require("./images");
-const { constants } = require("buffer");
+const { getAuthorImage } = require("./utility/get-author-image");
 
 const isValidPath = (path) => {
   if (!fs.existsSync(path)) {
@@ -150,38 +150,30 @@ module.exports = {
           if (err) {
             console.log(err);
           } else {
-            Jimp.read(
-              authorName.toLowerCase().trim() != properties.UNKNOWN_AUTHOR
-                ? `${process.env.ZENQUOTE_IMAGES}\\${authorName
-                    .toLowerCase()
-                    .replaceAll(" ", "-")
-                    .replaceAll(".", "_")}.jpg`
-                : properties.UNKNOWN_AUTHOR,
-              async (err, author_image) => {
-                if (err) {
-                  console.log(err);
-                } else {
-                  const mask = await Jimp.read(properties.CIRCLE_MASK);
-                  const masked_image = author_image.resize(
-                    mask.bitmap.width,
-                    mask.bitmap.height
+            Jimp.read(getAuthorImage(authorName), async (err, author_image) => {
+              if (err) {
+                console.log(err);
+              } else {
+                const mask = await Jimp.read(properties.CIRCLE_MASK);
+                const masked_image = author_image.resize(
+                  mask.bitmap.width,
+                  mask.bitmap.height
+                );
+                mask.mask(masked_image, 0, 0);
+                image
+                  .blit(backgr, 0, 0)
+                  .blit(textImage, properties.TEXT_WIDTH / 2, 0)
+                  .blit(
+                    mask,
+                    image.bitmap.width - properties.AUTHOR_IMAGE_OFFSET_X,
+                    image.bitmap.height - properties.AUTHOR_IMAGE_OFFSET_Y
+                  )
+                  .write(
+                    `${dest_folder}/${file_name}_${timestamp}.${file_ext}`
                   );
-                  mask.mask(masked_image, 0, 0);
-                  image
-                    .blit(backgr, 0, 0)
-                    .blit(textImage, properties.TEXT_WIDTH / 2, 0)
-                    .blit(
-                      mask,
-                      image.bitmap.width - properties.AUTHOR_IMAGE_OFFSET_X,
-                      image.bitmap.height - properties.AUTHOR_IMAGE_OFFSET_Y
-                    )
-                    .write(
-                      `${dest_folder}/${file_name}_${timestamp}.${file_ext}`
-                    );
-                  await deleteImage(properties.DIR_RESIZED);
-                }
+                await deleteImage(properties.DIR_RESIZED);
               }
-            );
+            });
           }
         });
       })
