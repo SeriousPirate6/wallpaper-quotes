@@ -1,71 +1,76 @@
 const fonts = require("./constants/fonts");
-const { User } = require("./classes/user");
-const { Quote } = require("./classes/quote");
-const { Image } = require("./classes/Image");
 const { searchPhoto } = require("./unsplash");
-const { Author } = require("./classes/author");
 const { getImageKeyWord } = require("./openai");
 const { getRandomQuote } = require("./zenquotes");
 const { sanitize } = require("./utility/string-utility");
 const { insertQuote } = require("./database/mdb-quotes");
-const { getAuthorImage } = require("./utility/get-author-image");
 const { addTextToImage, adjustDimensionsAndRatio } = require("./jimp");
-const { DriveService } = require("./g-drive/g-drive");
+const { DriveService } = require("./g-drive/DriveService");
+const { contructDriveUrl } = require("./utility/construct-drive-url");
 
 (async () => {
-  const quote = await getRandomQuote();
-  const image_description = sanitize(await getImageKeyWord(quote.q));
-  // const image_description = "exploration";
+  const fileId = "1HOJ7ufpDY7HK3zuQnIM0lGVmfwXkF0jh";
 
-  const unsplash_image = await searchPhoto({
-    query: image_description,
-    per_page: 20,
+  const drive = new DriveService();
+  await drive.authenticate();
+
+  const ids = await drive.getAllIdsWithToken({
+    query: "mimeType = 'application/vnd.google-apps.folder'",
   });
 
-  const db_quote = new Quote({
-    phrase: quote.q,
-    author: new Author({
-      name: quote.a,
-      image: getAuthorImage(quote.a),
-    }),
-    image: new Image({
-      id: unsplash_image.id,
-      createdTime: unsplash_image.created_at,
-      url: unsplash_image.urls.regular,
-      keyword: image_description,
-      user: new User({
-        id: unsplash_image.user.id,
-        profile_image: unsplash_image.user.profile_image.large,
-        ig_username: unsplash_image.user.instagram_username,
-      }),
-      tags: unsplash_image.tags.map((e) => e.title),
-    }),
-  });
+  // const ciao = await drive.shareFile({
+  //   auth: drive.auth,
+  //   fileId,
+  // });
 
-  const quoteId = await insertQuote(db_quote);
+  // const ci = await drive.getPropsFromFile({
+  //   fileId,
+  // });
 
-  if (quoteId) {
-    db_quote.id = quoteId;
+  // console.log(contructDriveUrl({ web_link: ci.webViewLink }));
 
-    const cropped_image = await adjustDimensionsAndRatio({
-      imagePath: db_quote.image.url,
-    });
+  // await drive.revokeSharePermission({
+  //   auth: drive.auth,
+  //   fileId,
+  //   permissionId: ciao,
+  // });
 
-    const imageReady = await addTextToImage({
-      imagePath: cropped_image,
-      imageCaption: quote.q,
-      textFont: fonts.HELVETICA_BOLD,
-      authorName: quote.a,
-      authorFont: fonts.HELVETICA_SMALL,
-    });
+  // console.log(ci);
+  // const quote = await getRandomQuote();
+  // const image_description = sanitize(await getImageKeyWord(quote.q));
+  // // const image_description = "exploration";
 
-    const drive = new DriveService();
-    await drive.initialize();
-    await drive.remainingSpace(true);
-    await drive.uploadFile({
-      fileName: imageReady,
-      description: quote.q,
-      file_props: { db_quote_id: quoteId },
-    });
-  }
+  // const image = await searchPhoto({
+  //   query: image_description,
+  //   per_page: 20,
+  // });
+
+  // db_quote = getProperties({ quote, image, image_description });
+
+  // const quoteId = await insertQuote(db_quote);
+
+  // if (quoteId) {
+  //   db_quote.id = quoteId;
+
+  //   const cropped_image = await adjustDimensionsAndRatio({
+  //     imagePath: db_quote.image.url,
+  //   });
+
+  //   const imageReady = await addTextToImage({
+  //     imagePath: cropped_image,
+  //     imageCaption: quote.q,
+  //     textFont: fonts.HELVETICA_BOLD,
+  //     authorName: quote.a,
+  //     authorFont: fonts.HELVETICA_SMALL,
+  //   });
+
+  //   const drive = new DriveService();
+  //   await drive.initialize();
+  //   await drive.remainingSpace(true);
+  //   await drive.uploadFile({
+  //     fileName: imageReady,
+  //     description: quote.q,
+  //     file_props: { db_quote_id: quoteId },
+  //   });
+  // }
 })();

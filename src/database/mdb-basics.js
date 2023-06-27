@@ -66,6 +66,8 @@ module.exports = {
     try {
       const collection = db.collection(cl);
 
+      data.timestamp = new Date();
+
       const result = Array.isArray(data)
         ? await collection.insertMany(data)
         : await collection.insertOne(data);

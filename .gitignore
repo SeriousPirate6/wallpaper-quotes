@@ -1,9 +1,11 @@
+# files
 .env
-bwfs
+/package-lock.json
+
+# folders
+temp
 output
 edited
 resized
 test_images
 node_modules
-/package-lock.json
-zenquotes_all_urls.txt
