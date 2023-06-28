@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 module.exports = {
   createConnection: (createConnection = async () => {
@@ -82,6 +82,24 @@ module.exports = {
       console.error("Error occurred while inserting data:", err);
     }
   }),
+
+  getDocumentById: async (db, cl, id) => {
+    try {
+      const collection = db.collection(cl);
+
+      const query = { _id: new ObjectId(id) };
+      const document = await collection.findOne(query);
+
+      if (document) {
+        console.log("Found document:", document);
+        return document;
+      } else {
+        console.log("Document not found");
+      }
+    } catch (err) {
+      console.log("Error occured while extracting record:", err);
+    }
+  },
 
   listRecordForAttribute: async (db, cl, { attribName, attribValue }) => {
     try {

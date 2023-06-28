@@ -2,10 +2,10 @@ const fs = require("fs");
 const Jimp = require("jimp");
 const path = require("path");
 const fonts = require("./constants/fonts");
-const { cutString } = require("./utility/string-utility");
+const { shorten: cutString } = require("./utility/stringUtils");
 const properties = require("./constants/properties");
 const { getImageTypeFromUrl, deleteImage } = require("./images");
-const { getAuthorImage } = require("./utility/get-author-image");
+const { getAuthorImage } = require("./utility/getAuthorImage");
 
 const isValidPath = (path) => {
   if (!fs.existsSync(path)) {

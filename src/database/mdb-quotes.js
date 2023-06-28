@@ -23,7 +23,7 @@ module.exports = {
 
     const duplicate = await listRecordForAttribute(
       db,
-      process.env.COLLECTION_NAME,
+      process.env.COLLECTION_QUOTES,
       {
         attribName,
         attribValue,
@@ -52,7 +52,7 @@ module.exports = {
       ) {
         const insertedData = await insertData(
           db,
-          process.env.COLLECTION_NAME,
+          process.env.COLLECTION_QUOTES,
           quote
         );
         return insertedData;

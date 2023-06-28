@@ -2,7 +2,7 @@ const { User } = require("../classes/user");
 const { Image } = require("../classes/Image");
 const { Quote } = require("../classes/quote");
 const { Author } = require("../classes/author");
-const { getAuthorImage } = require("./get-author-image");
+const { getAuthorImage } = require("./getAuthorImage");
 
 module.exports = {
   getProperties: ({ quote, image, image_description }) => {
