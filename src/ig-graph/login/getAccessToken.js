@@ -1,3 +1,6 @@
+require("dotenv").config();
+const axios = require("axios");
+
 getAccessToken = async (code) => {
   try {
     const response = (

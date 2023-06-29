@@ -1,10 +1,14 @@
 module.exports = Object.freeze({
+  // DRIVE QUERIES
+  QUERY_ONLY_FOLDERS: "mimeType = 'application/vnd.google-apps.folder'",
+  QUERY_NON_FOLDERS: "not mimeType = 'application/vnd.google-apps.folder'",
+  QUERY_IN_PARENT: (folderId) => {
+    return `'${folderId}' in parents`;
+  },
+
   // FOLDERS
   DIR_OUTPUT: "output",
   DIR_RESIZED: "resized",
-
-  // G-DRIVE folders
-  FOLDER_QUOTES: "W-Quotes",
 
   // JIMP
   TEXT_WIDTH: 400,

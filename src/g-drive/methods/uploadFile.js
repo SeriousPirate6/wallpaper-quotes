@@ -1,4 +1,7 @@
+const fs = require("fs");
+require("dotenv").config();
 const { google } = require("googleapis");
+const properties = require("../../constants/properties");
 
 module.exports = {
   uploadFile: async ({
@@ -12,7 +15,7 @@ module.exports = {
 
     const fileMetaData = {
       name: fileName,
-      parents: [parentFolder ? parentFolder : this.wquotes_folder],
+      parents: [parentFolder ? parentFolder : process.env.DRIVE_DEFAULT_FOLDER],
       description,
       properties: file_props,
     };
@@ -34,7 +37,7 @@ module.exports = {
     switch (response.status) {
       case 200:
         console.log("File created id: ", response.data.id);
-        break;
+        return response;
       default:
         console.log("Error creating file, " + response.errors);
         break;

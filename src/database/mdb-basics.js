@@ -79,7 +79,11 @@ module.exports = {
       console.log("Data inserted successfully:", insertedData);
       return insertedData;
     } catch (err) {
-      console.error("Error occurred while inserting data:", err);
+      if (err.code === 11000) {
+        console.error("Unique key constraint violation:", err.message);
+      } else {
+        console.error("Error occurred while inserting data:", err);
+      }
     }
   }),
 

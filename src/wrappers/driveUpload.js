@@ -1,14 +1,16 @@
-const DriveService = require("../g-drive/DriveService");
+require("dotenv").config();
+const { DriveService } = require("../g-drive/DriveService");
 
 module.exports = {
-  driveUpload: async ({ image, db_quote }) => {
+  quoteDriveUpload: async ({ image, db_quote }) => {
     const drive = new DriveService();
-    await drive.initialize();
+    await drive.authenticate();
     await drive.remainingSpace(true);
     await drive.uploadFile({
       fileName: image,
       description: db_quote.phrase,
       file_props: { db_quote_id: db_quote.id },
+      parentFolder: process.env.DRIVE_NEWQUOTES_FOLDER,
     });
   },
 };

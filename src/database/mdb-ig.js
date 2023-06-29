@@ -25,7 +25,7 @@ module.exports = {
     try {
       const insertedData = await insertData(db, process.env.COLLECTION_TOKENS, {
         _id: new ObjectId(process.env.DB_IG_TOKEN_ID),
-        token: encrypted_token.encryptedText,
+        token: encrypted_token,
         expiration_date,
       });
 
@@ -45,13 +45,8 @@ module.exports = {
     );
 
     if (tokenFile) {
-      const encryptedData = {
-        encryptedText: tokenFile.token,
-        iv: process.env.ENC_IV,
-      };
-
       const token = decrypt(
-        encryptedData,
+        tokenFile.token,
         fromHexToBytes(process.env.ENC_SECRET_KEY)
       );
 

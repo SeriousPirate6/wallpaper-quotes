@@ -18,10 +18,10 @@ module.exports = {
     console.log("file: " + fileId);
     console.log("folder: " + newParentId);
 
-    const { parents } = await getPropsFromFile(fileId);
+    const { parents } = await getPropsFromFile({ auth, fileId });
 
     let response = await driveService.files.update({
-      fileId: fileId,
+      fileId,
       uploadType: "media",
       addParents: [newParentId],
       removeParents: [parents],

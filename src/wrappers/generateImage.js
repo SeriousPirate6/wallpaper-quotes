@@ -9,9 +9,9 @@ module.exports = {
 
     const imageReady = await addTextToImage({
       imagePath: cropped_image,
-      imageCaption: quote.phrase,
+      imageCaption: db_quote.phrase,
       textFont: fonts.HELVETICA_BOLD,
-      authorName: quote.author.name,
+      authorName: db_quote.author.name,
       authorFont: fonts.HELVETICA_SMALL,
     });
 
