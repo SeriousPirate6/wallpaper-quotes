@@ -28,11 +28,11 @@ module.exports = {
 
     try {
       const result = await driveService.permissions.delete({
-        fileId: fileId,
+        fileId,
         permissionId,
         fields: "id",
       });
-      console.log(`Revoked permission for id: ${result.data.id}`);
+      console.log(`Revoked permission for id: ${fileId}`);
       return result.data.id;
     } catch (err) {
       console.error(err);

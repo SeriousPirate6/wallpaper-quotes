@@ -3,21 +3,22 @@ const bodyParser = require("body-parser");
 const { searchPhoto } = require("./unsplash");
 const { getImageKeyWord } = require("./openai");
 const { getRandomQuote } = require("./zenquotes");
-const { quoteDriveUpload: driveUpload } = require("./wrappers/driveUpload");
+const properties = require("./constants/properties");
 const { sanitize } = require("./utility/stringUtils");
+const { createImagePost } = require("./ig-graph/post");
 const { insertQuote } = require("./database/mdb-quotes");
 const { DriveService } = require("./g-drive/DriveService");
 const { getProperties } = require("./utility/getProperties");
-const { contructDriveUrl } = require("./utility/constructDriveUrl");
 const { generateImage } = require("./wrappers/generateImage");
+const { quoteDriveUpload } = require("./wrappers/driveUpload");
 const { requireAuth } = require("./ig-graph/login/getAuthWindow");
+const { contructDriveUrl } = require("./utility/constructDriveUrl");
 const { getLongLiveAccessToken } = require("./ig-graph/login/getAccessToken");
 const {
   encryptAndInsertToken,
   decryptAndGetToken,
+  insertPost,
 } = require("./database/mdb-ig");
-const { createImagePost } = require("./ig-graph/post");
-const properties = require("./constants/properties");
 
 const app = express();
 const port = 3000;
@@ -59,7 +60,7 @@ app.get("/generateQuoteImage", async ({ res }) => {
 
       const image = await generateImage({ db_quote });
 
-      const image_id = await driveUpload({
+      const image_id = await quoteDriveUpload({
         image,
         db_quote,
       });
@@ -86,9 +87,6 @@ app.get("/generateQuoteImage", async ({ res }) => {
 });
 
 app.get("/getQuoteAndPostIt", async ({ res }) => {
-  // get a fileId from the "NewQuotes" folder
-  // use that id to generate the post
-  // update the parent folder of that id to the "Archive" folder
   const drive = new DriveService();
   await drive.authenticate();
 
@@ -111,15 +109,29 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
 
       const image_url = contructDriveUrl({ web_link: imageFile.webViewLink });
 
+      const caption = "Daily random quote."; // maybe something better
       const postId = await createImagePost({
         access_token,
         image_url,
-        caption: "Daily random quote.",
+        caption,
       });
 
-      // adding id to a post collection in mongo
+      await insertPost(postId, imageFile.id, caption);
 
-      await drive.revokeSharePermission({ fileId, permissionId });
+      await drive.revokeSharePermission({ fileId: imageFile.id, permissionId });
+      await drive.updateFileParent({
+        fileId: imageFile.id,
+        newParentId: process.env.DRIVE_ARCHIVE_FOLDER,
+      });
+
+      res.send({
+        status: "success",
+        message: "Image posted successfully",
+        image: {
+          id: imageFile.id,
+          url: imageFile.webViewLink,
+        },
+      });
     } catch (err) {
       console.log(err);
       res.status(500).send({
@@ -134,46 +146,6 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
     });
   }
 });
-
-(async () => {
-  // const cc = new DriveService();
-  // await cc.authenticate();
-  // await cc.getAllIdsWithToken({
-  //   query: properties.QUERY_IN_PARENT(process.env.DRIVE_NEWQUOTES_FOLDER),
-  // });
-  // const ciao = await cc.nameToFileId({
-  //   fileName:
-  //     "output/photo_1479064312651_1688035006239.jpeg_1688035006455..jpeg",
-  // });
-  // await cc.updateFileParent({
-  //   fileId: ciao.id,
-  //   newParentId: process.env.DRIVE_DEFAULT_FOLDER,
-  // });
-  // console.log(requireAuth());
-  // const fileId = "1HOJ7ufpDY7HK3zuQnIM0lGVmfwXkF0jh";
-  // const text = "baubau";
-  // const secretKey = getRandomKey(32);
-  // const asd = encrypt(text, secretKey);
-  // console.log(asd);
-  // const ciao = decrypt(asd, secretKey);
-  // console.log(ciao);
-  // console.log(requireAuth());
-  // const drive = new DriveService().authenticate();
-  // const ciao = await drive.shareFile({
-  //   auth: drive.auth,
-  //   fileId,
-  // });
-  // const ci = await drive.getPropsFromFile({
-  //   fileId,
-  // });
-  // console.log(contructDriveUrl({ web_link: ci.webViewLink }));
-  // await drive.revokeSharePermission({
-  //   auth: drive.auth,
-  //   fileId,
-  //   permissionId: ciao,
-  // });
-  // console.log(ci);
-})();
 
 app.listen(port, () => {
   console.log(`Running on port: ${port}`);

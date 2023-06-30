@@ -55,4 +55,21 @@ module.exports = {
       return tokenFile;
     } else return null;
   },
+
+  insertPost: async (postId, imageFileId, caption) => {
+    const client = await createConnection();
+    const db = await getDB(client, process.env.DB_NAME);
+
+    try {
+      const insertedData = await insertData(db, process.env.COLLECTION_POSTS, {
+        postId,
+        imageFileId,
+        caption,
+      });
+
+      return insertedData;
+    } finally {
+      await closeConnection(client);
+    }
+  },
 };
