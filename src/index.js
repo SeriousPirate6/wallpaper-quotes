@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const { searchPhoto } = require("./unsplash");
@@ -19,6 +20,7 @@ const {
   decryptAndGetToken,
   insertPost,
 } = require("./database/mdb-ig");
+const { deleteFile } = require("./utility/images");
 
 const app = express();
 const port = 3000;
@@ -64,6 +66,8 @@ app.get("/generateQuoteImage", async ({ res }) => {
         image,
         db_quote,
       });
+
+      deleteFile(image);
       res.send({
         status: "success",
         message: "Image generated and uploaded correctly.",

@@ -32,14 +32,23 @@ module.exports = {
         method: "HEAD",
       });
       return reponse.headers.get("Content-Type");
-    } catch {
+    } catch (err) {
       console.log(
-        `The url: '${url}' is not valid or does not contains an image.`
+        `The url: '${url}' is not valid or does not contains an image.\n${err}`
       );
     }
   }),
 
-  deleteImage: (deleteImage = async (dir_output) => {
+  deleteFile: (filePath) => {
+    try {
+      fs.unlinkSync(filePath);
+      console.log("File deleted successfully: ", filePath);
+    } catch (error) {
+      console.error("Error deleting file:", error);
+    }
+  },
+
+  deleteFolderRecursively: (dir_output) => {
     fs.rmSync(dir_output, { recursive: true });
-  }),
+  },
 };

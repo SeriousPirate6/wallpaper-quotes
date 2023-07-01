@@ -6,11 +6,12 @@ module.exports = {
     const drive = new DriveService();
     await drive.authenticate();
     await drive.remainingSpace(true);
-    await drive.uploadFile({
+    const fileId = await drive.uploadFile({
       fileName: image,
       description: db_quote.phrase,
       file_props: { db_quote_id: db_quote.id },
       parentFolder: process.env.DRIVE_NEWQUOTES_FOLDER,
     });
+    return fileId;
   },
 };

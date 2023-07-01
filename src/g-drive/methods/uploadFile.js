@@ -37,7 +37,7 @@ module.exports = {
     switch (response.status) {
       case 200:
         console.log("File created id: ", response.data.id);
-        return response;
+        return response.data.id;
       default:
         console.log("Error creating file, " + response.errors);
         break;

@@ -1,11 +1,14 @@
 const fs = require("fs");
 const Jimp = require("jimp");
 const path = require("path");
-const fonts = require("./constants/fonts");
-const { shorten: cutString } = require("./utility/stringUtils");
+const { checkURL } = require("./utility/checkURL");
+const { shorten } = require("./utility/stringUtils");
 const properties = require("./constants/properties");
-const { getImageTypeFromUrl, deleteImage } = require("./images");
 const { getAuthorImage } = require("./utility/getAuthorImage");
+const {
+  getImageTypeFromUrl,
+  deleteFolderRecursively,
+} = require("./utility/images");
 
 const isValidPath = (path) => {
   if (!fs.existsSync(path)) {
@@ -27,13 +30,13 @@ module.exports = {
     if (!image_type && !isValidPath(imagePath)) return;
 
     return new Promise((resolve, reject) => {
-      Jimp.read(imagePath, function (err, image) {
+      Jimp.read(imagePath).then((image, err) => {
         if (err) reject(err);
 
         const file_ext = image_type
           ? `.${image_type.split("/")[1]}`
           : path.extname(imagePath);
-        const file_name = cutString(
+        const file_name = shorten(
           path.parse(imagePath).name.replace(/[^a-z0-9]|\s+|\r?\n|\r/gim, "_"),
           10
         );
@@ -74,19 +77,22 @@ module.exports = {
             );
           }
         }
-        image
-          .crop(
-            image.bitmap.width - width > 0
-              ? (image.bitmap.width - width) / 2
-              : 0,
-            image.bitmap.height - height > 0
-              ? (image.bitmap.height - height) / 2
-              : 0,
-            width,
-            height
-          )
-          .write(`${dest_folder}/${file_name}_${timestamp}${file_ext}`);
 
+        fs.writeFileSync(
+          `${dest_folder}/${file_name}_${timestamp}${file_ext}`,
+          Jimp.encoders["image/png"](
+            image.crop(
+              image.bitmap.width - width > 0
+                ? (image.bitmap.width - width) / 2
+                : 0,
+              image.bitmap.height - height > 0
+                ? (image.bitmap.height - height) / 2
+                : 0,
+              width,
+              height
+            )
+          )
+        );
         resolve(`${dest_folder}/${file_name}_${timestamp}${file_ext}`);
       });
     });
@@ -147,12 +153,16 @@ module.exports = {
             image.bitmap.height - 200
           );
           textImage.color([{ apply: "xor", params: ["#ffffff"] }]);
+
+          const author_image_url = getAuthorImage(authorName);
+          const urlExists = await checkURL(author_image_url);
+
           Jimp.read(properties.QUOTE_FRAME, (err, backgr) => {
             if (err) {
               reject(err);
             } else {
               Jimp.read(
-                getAuthorImage(authorName),
+                urlExists ? author_image_url : properties.UNKNOWN_AUTHOR_IMAGE,
                 async (err, author_image) => {
                   if (err) {
                     reject(err);
@@ -163,20 +173,24 @@ module.exports = {
                       mask.bitmap.height
                     );
                     mask.mask(masked_image, 0, 0);
-                    image
-                      .blit(backgr, 0, 0)
-                      .blit(textImage, properties.TEXT_WIDTH / 2, 0)
-                      .blit(
-                        mask,
-                        image.bitmap.width - properties.AUTHOR_IMAGE_OFFSET_X,
-                        image.bitmap.height - properties.AUTHOR_IMAGE_OFFSET_Y
+                    fs.writeFileSync(
+                      `${dest_folder}/${file_name}_${timestamp}${file_ext}`,
+                      Jimp.encoders["image/png"](
+                        image
+                          .blit(backgr, 0, 0)
+                          .blit(textImage, properties.TEXT_WIDTH / 2, 0)
+                          .blit(
+                            mask,
+                            image.bitmap.width -
+                              properties.AUTHOR_IMAGE_OFFSET_X,
+                            image.bitmap.height -
+                              properties.AUTHOR_IMAGE_OFFSET_Y
+                          )
                       )
-                      .write(
-                        `${dest_folder}/${file_name}_${timestamp}.${file_ext}`
-                      );
-                    await deleteImage(properties.DIR_RESIZED);
+                    );
+                    deleteFolderRecursively(properties.DIR_RESIZED);
                     resolve(
-                      `${dest_folder}/${file_name}_${timestamp}.${file_ext}`
+                      `${dest_folder}/${file_name}_${timestamp}${file_ext}`
                     );
                   }
                 }

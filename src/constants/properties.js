@@ -5,6 +5,12 @@ module.exports = Object.freeze({
   QUERY_IN_PARENT: (folderId) => {
     return `'${folderId}' in parents`;
   },
+  QUERY_NAME_EQUAL: (fileName) => {
+    return `name = '${fileName}'`;
+  },
+  QUERY_NAME_CONTAINS: (fileName) => {
+    return `name contains '${fileName}'`;
+  },
 
   // FOLDERS
   DIR_OUTPUT: "output",
