@@ -4,6 +4,7 @@ const {
   insertData,
   closeConnection,
   listRecordForAttribute,
+  getDocumentById,
 } = require("./mdb-basics");
 const { Quote } = require("../classes/quote");
 
@@ -61,4 +62,20 @@ module.exports = {
       await closeConnection(client);
     }
   }),
+
+  getQuoteById: async ({ quoteId }) => {
+    const client = await createConnection();
+    const db = await getDB(client, process.env.DB_NAME);
+
+    try {
+      const quote = await getDocumentById(
+        db,
+        process.env.COLLECTION_QUOTES,
+        quoteId
+      );
+      return quote;
+    } finally {
+      await closeConnection(client);
+    }
+  },
 };

@@ -7,7 +7,7 @@ const { getRandomQuote } = require("./zenquotes");
 const properties = require("./constants/properties");
 const { sanitize } = require("./utility/stringUtils");
 const { createImagePost } = require("./ig-graph/post");
-const { insertQuote } = require("./database/mdb-quotes");
+const { insertQuote, getQuoteById } = require("./database/mdb-quotes");
 const { DriveService } = require("./g-drive/DriveService");
 const { getProperties } = require("./utility/getProperties");
 const { generateImage } = require("./wrappers/generateImage");
@@ -99,9 +99,13 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
       query: `${properties.QUERY_IN_PARENT(
         process.env.DRIVE_NEWQUOTES_FOLDER
       )} and ${properties.QUERY_NON_FOLDERS}`,
-      fields: "files(id, name, webViewLink)",
+      fields: "files(id, name, webViewLink, properties(db_quote_id))",
     })
   )[0];
+
+  const quoteProps = await getQuoteById({
+    quoteId: imageFile.properties.db_quote_id,
+  });
 
   if (imageFile) {
     try {
@@ -113,7 +117,14 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
 
       const image_url = contructDriveUrl({ web_link: imageFile.webViewLink });
 
-      const caption = "Daily random quote."; // maybe something better
+      const image_credits = quoteProps?.image.user?.ig_username
+        ? `\nImage credits: @${quoteProps?.image.user?.ig_username}\n-`
+        : "";
+
+      // TODO extracting tags dinamically
+      const tags = `#motivationalquotes #motivational #motivationalquote #MotivationalSpeaker #motivationalmonday #motivationalwords #motivationalpost #motivationalfitness #motivationalquoteoftheday #motivationalspeakers #motivationalmondays #motivationalquotesoftheday #motivationalspeaking #motivationalvideo #motivationalcoach #motivationalqoutes #MotivationalPage #motivationalspeech #motivationalposts #MotivationalPic #motivationalmoments #motivationalquotesandsayings #MotivationalQuotesDaily #motivationalhustler #MotivationalMusic #MotivationalMoment #motivationalmoments500 #motivationalthoughts #motivationalposter #motivationalaccount`;
+
+      const caption = `-\n-\n${quoteProps?.image?.keyword}.\n-${image_credits}\n${tags}`;
       const postId = await createImagePost({
         access_token,
         image_url,

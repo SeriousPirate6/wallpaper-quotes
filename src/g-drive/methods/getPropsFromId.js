@@ -7,7 +7,7 @@ module.exports = {
       fileId: fileId,
       fields:
         "id, name, size, mimeType, parents, webViewLink, " +
-        "properties(id, username, timestamp, media_type, media_product_type)," +
+        "properties(db_quote_id)," +
         "permissions(kind, id, emailAddress, role)",
     });
     console.log(file.data);
