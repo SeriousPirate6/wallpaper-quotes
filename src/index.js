@@ -104,7 +104,7 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
   )[0];
 
   const quoteProps = await getQuoteById({
-    quoteId: imageFile.properties.db_quote_id,
+    quoteId: imageFile?.properties?.db_quote_id,
   });
 
   if (imageFile) {
@@ -117,6 +117,10 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
 
       const image_url = contructDriveUrl({ web_link: imageFile.webViewLink });
 
+      const description = quoteProps?.image?.keyword
+        ? `${quoteProps?.image?.keyword}.`
+        : "Daily random quote.";
+
       const image_credits = quoteProps?.image.user?.ig_username
         ? `\nImage credits: @${quoteProps?.image.user?.ig_username}\n-`
         : "";
@@ -124,7 +128,7 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
       // TODO extracting tags dinamically
       const tags = `#motivationalquotes #motivational #motivationalquote #MotivationalSpeaker #motivationalmonday #motivationalwords #motivationalpost #motivationalfitness #motivationalquoteoftheday #motivationalspeakers #motivationalmondays #motivationalquotesoftheday #motivationalspeaking #motivationalvideo #motivationalcoach #motivationalqoutes #MotivationalPage #motivationalspeech #motivationalposts #MotivationalPic #motivationalmoments #motivationalquotesandsayings #MotivationalQuotesDaily #motivationalhustler #MotivationalMusic #MotivationalMoment #motivationalmoments500 #motivationalthoughts #motivationalposter #motivationalaccount`;
 
-      const caption = `-\n-\n${quoteProps?.image?.keyword}.\n-${image_credits}\n${tags}`;
+      const caption = `-\n-\n${description}\n-${image_credits}\n${tags}`;
       const postId = await createImagePost({
         access_token,
         image_url,
