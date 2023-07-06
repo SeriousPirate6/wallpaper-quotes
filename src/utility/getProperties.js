@@ -1,5 +1,5 @@
 const { User } = require("../classes/user");
-const { Image } = require("../classes/Image");
+const { Image } = require("../classes/image");
 const { Quote } = require("../classes/quote");
 const { Author } = require("../classes/author");
 const { getAuthorImage } = require("./getAuthorImage");
