@@ -4,23 +4,24 @@ const bodyParser = require("body-parser");
 const { searchPhoto } = require("./unsplash");
 const { getImageKeyWord } = require("./openai");
 const { getRandomQuote } = require("./zenquotes");
+const { deleteFile } = require("./utility/images");
 const properties = require("./constants/properties");
 const { sanitize } = require("./utility/stringUtils");
 const { createImagePost } = require("./ig-graph/post");
-const { insertQuote, getQuoteById } = require("./database/mdb-quotes");
 const { DriveService } = require("./g-drive/DriveService");
 const { getProperties } = require("./utility/getProperties");
 const { generateImage } = require("./wrappers/generateImage");
 const { quoteDriveUpload } = require("./wrappers/driveUpload");
+const { checkDriveCreds } = require("./wrappers/checkDriveCreds");
 const { requireAuth } = require("./ig-graph/login/getAuthWindow");
 const { contructDriveUrl } = require("./utility/constructDriveUrl");
+const { insertQuote, getQuoteById } = require("./database/mdb-quotes");
 const { getLongLiveAccessToken } = require("./ig-graph/login/getAccessToken");
 const {
   encryptAndInsertToken,
   decryptAndGetToken,
   insertPost,
 } = require("./database/mdb-ig");
-const { deleteFile } = require("./utility/images");
 
 const app = express();
 const port = 3000;
@@ -45,6 +46,8 @@ app.get("/getAuthentication", async (req, res) => {
 });
 
 app.get("/generateQuoteImage", async ({ res }) => {
+  await checkDriveCreds();
+
   try {
     const quote = await getRandomQuote();
     const image_description = sanitize(await getImageKeyWord(quote.q));
@@ -91,6 +94,8 @@ app.get("/generateQuoteImage", async ({ res }) => {
 });
 
 app.get("/getQuoteAndPostIt", async ({ res }) => {
+  await checkDriveCreds();
+
   const drive = new DriveService();
   await drive.authenticate();
 

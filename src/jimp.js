@@ -26,76 +26,82 @@ module.exports = {
     width = 1080, // IG standards
     height = 1350,
   }) => {
-    const image_type = await getImageTypeFromUrl(imagePath);
-    if (!image_type && !isValidPath(imagePath)) return;
+    try {
+      const image_type = await getImageTypeFromUrl(imagePath);
+      if (!image_type && !isValidPath(imagePath)) return;
 
-    return new Promise((resolve, reject) => {
-      Jimp.read(imagePath).then((image, err) => {
-        if (err) reject(err);
+      return new Promise((resolve, reject) => {
+        Jimp.read(imagePath).then((image, err) => {
+          if (err) reject(err);
 
-        const file_ext = image_type
-          ? `.${image_type.split("/")[1]}`
-          : path.extname(imagePath);
-        const file_name = shorten(
-          path.parse(imagePath).name.replace(/[^a-z0-9]|\s+|\r?\n|\r/gim, "_"),
-          10
-        );
+          const file_ext = image_type
+            ? `.${image_type.split("/")[1]}`
+            : path.extname(imagePath);
+          const file_name = shorten(
+            path
+              .parse(imagePath)
+              .name.replace(/[^a-z0-9]|\s+|\r?\n|\r/gim, "_"),
+            10
+          );
 
-        const timestamp = Date.now();
-        const dest_folder = properties.DIR_RESIZED;
-        if (!fs.existsSync(dest_folder)) fs.mkdirSync(dest_folder);
+          const timestamp = Date.now();
+          const dest_folder = properties.DIR_RESIZED;
+          if (!fs.existsSync(dest_folder)) fs.mkdirSync(dest_folder);
 
-        const width_diff = width - image.bitmap.width;
-        const height_diff = height - image.bitmap.height;
-        if (width_diff > 0 || height_diff > 0) {
-          // if one of the two measures are smaller than the corresponding target measure, we make sure to resize it.
-          if (width_diff >= height_diff) {
-            // if the difference gap is bigger in width, we make sure that width will be at least as its target measure.
-            image.resize(
-              width,
-              (width / image.bitmap.width) * image.bitmap.height
-            );
+          const width_diff = width - image.bitmap.width;
+          const height_diff = height - image.bitmap.height;
+          if (width_diff > 0 || height_diff > 0) {
+            // if one of the two measures are smaller than the corresponding target measure, we make sure to resize it.
+            if (width_diff >= height_diff) {
+              // if the difference gap is bigger in width, we make sure that width will be at least as its target measure.
+              image.resize(
+                width,
+                (width / image.bitmap.width) * image.bitmap.height
+              );
+            } else {
+              // same thing in case height gap is bigger than the one of width
+              image.resize(
+                (height / image.bitmap.height) * image.bitmap.width,
+                height
+              );
+            }
           } else {
-            // same thing in case height gap is bigger than the one of width
-            image.resize(
-              (height / image.bitmap.height) * image.bitmap.width,
-              height
-            );
+            // if both sizes are bigger than their target measures, we proceed doing the opposite compare to above
+            if (width_diff > height_diff) {
+              // the sign is inverted because the difference, if present, is negative in this case
+              image.resize(
+                width,
+                (width / image.bitmap.width) * image.bitmap.height
+              );
+            } else {
+              image.resize(
+                (height / image.bitmap.height) * image.bitmap.width,
+                height
+              );
+            }
           }
-        } else {
-          // if both sizes are bigger than their target measures, we proceed doing the opposite compare to above
-          if (width_diff > height_diff) {
-            // the sign is inverted because the difference, if present, is negative in this case
-            image.resize(
-              width,
-              (width / image.bitmap.width) * image.bitmap.height
-            );
-          } else {
-            image.resize(
-              (height / image.bitmap.height) * image.bitmap.width,
-              height
-            );
-          }
-        }
 
-        fs.writeFileSync(
-          `${dest_folder}/${file_name}_${timestamp}${file_ext}`,
-          Jimp.encoders["image/png"](
-            image.crop(
-              image.bitmap.width - width > 0
-                ? (image.bitmap.width - width) / 2
-                : 0,
-              image.bitmap.height - height > 0
-                ? (image.bitmap.height - height) / 2
-                : 0,
-              width,
-              height
+          fs.writeFileSync(
+            `${dest_folder}/${file_name}_${timestamp}${file_ext}`,
+            Jimp.encoders["image/png"](
+              image.crop(
+                image.bitmap.width - width > 0
+                  ? (image.bitmap.width - width) / 2
+                  : 0,
+                image.bitmap.height - height > 0
+                  ? (image.bitmap.height - height) / 2
+                  : 0,
+                width,
+                height
+              )
             )
-          )
-        );
-        resolve(`${dest_folder}/${file_name}_${timestamp}${file_ext}`);
+          );
+          resolve(`${dest_folder}/${file_name}_${timestamp}${file_ext}`);
+        });
       });
-    });
+    } catch (err) {
+      console.log(err);
+    }
   }),
 
   addTextToImage: (addTextToImage = async ({

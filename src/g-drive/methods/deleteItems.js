@@ -1,18 +1,18 @@
 const { google } = require("googleapis");
 
 module.exports = {
-  delItem: (delItem = async ({ auth, folderId }) => {
+  delItem: (delItem = async ({ auth, fileId }) => {
     const drive = google.drive({ version: "v3", auth });
 
     let response = await drive.files.delete({
-      fileId: folderId,
+      fileId: fileId,
     });
     switch (response.status) {
       case 200:
         console.log("Deleted file: ", response.data.files);
         break;
       default:
-        console.log("Deleting file...", folderId);
+        console.log("Deleting file...", fileId);
         break;
     }
   }),
@@ -24,7 +24,7 @@ module.exports = {
     }
 
     for await (const id of ids) {
-      await delItem({ auth, folderId: id.id });
+      await delItem({ auth, fileId: id.id });
     }
   },
 };

@@ -9,6 +9,7 @@ edited
 resized
 test_images
 node_modules
+src/etc/secrets
 
 # render env backup file
 render/env.json

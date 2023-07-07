@@ -61,8 +61,8 @@ module.exports = {
       return await createFolder({ auth: this.auth, folderName, parentId });
     };
 
-    delItem = async ({ folderId }) => {
-      return await delItem({ auth: this.auth, folderId });
+    delItem = async ({ fileId }) => {
+      return await delItem({ auth: this.auth, fileId });
     };
 
     deleteItems = async ({ ids }) => {
