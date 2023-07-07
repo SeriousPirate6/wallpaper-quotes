@@ -7,7 +7,7 @@ module.exports = {
       client.get(url, (res) => {
         if (res.statusCode === 200) {
           const ext = res.headers["content-type"].split("/").pop();
-          const complete_path = `${filepath.replaceAll(" ", "_")}.${ext}`;
+          const complete_path = `${filepath.replace(/ /g, "_")}.${ext}`;
           res
             .pipe(fs.createWriteStream(complete_path))
             .on("error", reject)
