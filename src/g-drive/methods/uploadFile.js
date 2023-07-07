@@ -1,7 +1,7 @@
-const fs = require("fs");
 require("dotenv").config();
 const { google } = require("googleapis");
 const properties = require("../../constants/properties");
+const { createReadStream } = require("../../utility/createReadStream");
 
 module.exports = {
   uploadFile: async ({
@@ -20,12 +20,14 @@ module.exports = {
       properties: file_props,
     };
 
+    const body = await createReadStream(fileName);
+
     const media = {
       mimeType:
         file_props.media_type === properties.MEDIA_FORMAT.MP4
           ? properties.MIME_TYPE.VIDEO
           : properties.MIME_TYPE.IMAGE,
-      body: fs.createReadStream(fileName),
+      body,
     };
 
     const response = await driveService.files.create({
