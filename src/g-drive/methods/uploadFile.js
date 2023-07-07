@@ -20,29 +20,33 @@ module.exports = {
       properties: file_props,
     };
 
-    const body = await createReadStream(fileName);
+    try {
+      const body = await createReadStream(fileName);
 
-    const media = {
-      mimeType:
-        file_props.media_type === properties.MEDIA_FORMAT.MP4
-          ? properties.MIME_TYPE.VIDEO
-          : properties.MIME_TYPE.IMAGE,
-      body,
-    };
+      const media = {
+        mimeType:
+          file_props.media_type === properties.MEDIA_FORMAT.MP4
+            ? properties.MIME_TYPE.VIDEO
+            : properties.MIME_TYPE.IMAGE,
+        body,
+      };
 
-    const response = await driveService.files.create({
-      resource: fileMetaData,
-      media: media,
-      fields: "id",
-    });
+      const response = await driveService.files.create({
+        resource: fileMetaData,
+        media: media,
+        fields: "id",
+      });
 
-    switch (response.status) {
-      case 200:
-        console.log("File created id: ", response.data.id);
-        return response.data.id;
-      default:
-        console.log("Error creating file, " + response.errors);
-        break;
+      switch (response.status) {
+        case 200:
+          console.log("File created id: ", response.data.id);
+          return response.data.id;
+        default:
+          console.log("Error creating file, " + response.errors);
+          break;
+      }
+    } catch (err) {
+      console.log(err);
     }
   },
 };
