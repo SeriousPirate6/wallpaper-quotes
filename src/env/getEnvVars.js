@@ -13,13 +13,13 @@ module.exports = {
 
     const arr_env = fs.readFileSync(envFileLocation, "utf-8");
 
-    const keys = arr_env.match(/^[A-Za-z0-9_]+/gm);
-    const values = arr_env
-      .match(/=\s*([^#\r\n]*)/g)
-      .map((match) => match.replace(/^=\s*/, "").trim());
-
+    const lines = arr_env.match(/^(?!#)(.*=.+)$/gm);
     const map = new Map();
-    keys.forEach((e, index) => map.set(e, values[index]));
+
+    lines.forEach((e) => {
+      const index = e.indexOf("=");
+      map.set(e.substring(0, index), e.substring(index + 1));
+    });
 
     return map;
   }),
