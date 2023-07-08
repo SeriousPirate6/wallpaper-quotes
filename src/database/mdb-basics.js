@@ -87,6 +87,23 @@ module.exports = {
     }
   }),
 
+  updateData: async (db, cl, objectId, data) => {
+    try {
+      const collection = db.collection(cl);
+
+      data.timestamp = new Date();
+
+      const filter = { _id: new ObjectId(objectId) };
+      const update = { $set: data };
+
+      const result = await collection.updateOne(filter, update);
+
+      console.log(`${result.modifiedCount} document(s) updated.`);
+    } catch (error) {
+      console.error("Error updating document:", error);
+    }
+  },
+
   getDocumentById: async (db, cl, id) => {
     try {
       const collection = db.collection(cl);

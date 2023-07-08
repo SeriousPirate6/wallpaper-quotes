@@ -7,15 +7,17 @@ const { getRandomQuote } = require("./zenquotes");
 const { deleteFile } = require("./utility/images");
 const properties = require("./constants/properties");
 const { sanitize } = require("./utility/stringUtils");
-const { createImagePost } = require("./ig-graph/post");
+const { exportEnvVars } = require("./env/exportEnvVars");
 const { DriveService } = require("./g-drive/DriveService");
 const { getProperties } = require("./utility/getProperties");
 const { generateImage } = require("./wrappers/generateImage");
 const { quoteDriveUpload } = require("./wrappers/driveUpload");
 const { checkDriveCreds } = require("./wrappers/checkDriveCreds");
 const { requireAuth } = require("./ig-graph/login/getAuthWindow");
+const { pushEnvVarsToRender } = require("./env/pushEnvVarsToRender");
 const { contructDriveUrl } = require("./utility/constructDriveUrl");
 const { insertQuote, getQuoteById } = require("./database/mdb-quotes");
+const { createImagePost, checkPublishingLimits } = require("./ig-graph/post");
 const { getLongLiveAccessToken } = require("./ig-graph/login/getAccessToken");
 const {
   encryptAndInsertToken,
@@ -167,6 +169,23 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
     res.status(204).send({
       status: "no content",
       message: "No images found to be posted.",
+    });
+  }
+});
+
+app.patch("/pushEnvVarsToRender", async ({ res }) => {
+  try {
+    exportEnvVars();
+    await pushEnvVarsToRender();
+    res.send({
+      status: "success",
+      message: "Renders Env Vars updated successfully.",
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({
+      status: "failed",
+      message: "Something goes wrong, could not perform the request.",
     });
   }
 });

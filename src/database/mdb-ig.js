@@ -7,7 +7,17 @@ const {
   closeConnection,
   createConnection,
   getDocumentById,
+  updateData,
 } = require("./mdb-basics");
+
+getTokenIfExists = async (db) => {
+  const tokenFile = await getDocumentById(
+    db,
+    process.env.COLLECTION_TOKENS,
+    process.env.DB_IG_TOKEN_ID
+  );
+  return tokenFile;
+};
 
 module.exports = {
   encryptAndInsertToken: async (token) => {
@@ -22,12 +32,24 @@ module.exports = {
       fromHexToBytes(process.env.ENC_SECRET_KEY)
     );
 
+    const isTokenPresent = await getTokenIfExists(db);
+
     try {
-      const insertedData = await insertData(db, process.env.COLLECTION_TOKENS, {
-        _id: new ObjectId(process.env.DB_IG_TOKEN_ID),
-        token: encrypted_token,
-        expiration_date,
-      });
+      const insertedData = isTokenPresent
+        ? await updateData(
+            db,
+            process.env.COLLECTION_TOKENS,
+            process.env.DB_IG_TOKEN_ID,
+            {
+              token: encrypted_token,
+              expiration_date,
+            }
+          )
+        : await insertData(db, process.env.COLLECTION_TOKENS, {
+            _id: new ObjectId(process.env.DB_IG_TOKEN_ID),
+            token: encrypted_token,
+            expiration_date,
+          });
 
       return { insertedData, encrypted_token };
     } finally {
@@ -38,11 +60,7 @@ module.exports = {
   decryptAndGetToken: async () => {
     const client = await createConnection();
     const db = await getDB(client, process.env.DB_NAME);
-    const tokenFile = await getDocumentById(
-      db,
-      process.env.COLLECTION_TOKENS,
-      process.env.DB_IG_TOKEN_ID
-    );
+    const tokenFile = await getTokenIfExists(db);
 
     if (tokenFile) {
       const token = decrypt(

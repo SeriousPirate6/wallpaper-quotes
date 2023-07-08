@@ -18,7 +18,13 @@ module.exports = {
 
     lines.forEach((e) => {
       const index = e.indexOf("=");
-      map.set(e.substring(0, index), e.substring(index + 1));
+      map.set(
+        e.substring(0, index).trim(),
+        e
+          .substring(index + 1)
+          .split("#")[0]
+          .trim()
+      );
     });
 
     return map;

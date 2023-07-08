@@ -35,6 +35,22 @@ postImage = async ({ access_token, creation_id }) => {
   );
 };
 
+checkPublishingLimits = async ({ access_token }) => {
+  const response = (
+    await axios.get(
+      process.env.IG_GRAPH_URL +
+        `/${process.env.IG_BUSINESS_ID}/content_publishing_limit`,
+      {
+        params: {
+          fields: "config, quota_usage",
+          access_token,
+        },
+      }
+    )
+  ).data;
+  return response;
+};
+
 module.exports = {
   createImagePost: async ({ access_token, image_url, caption }) => {
     const creation_id = await getPostId({ access_token, image_url, caption });
@@ -42,5 +58,10 @@ module.exports = {
 
     console.log(`New post with id: ${creation_id}`);
     return creation_id;
+  },
+
+  getPostedLast24h: async ({ access_token }) => {
+    const response = await checkPublishingLimits({ access_token });
+    return response.quota_usage;
   },
 };
