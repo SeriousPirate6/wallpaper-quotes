@@ -16,6 +16,9 @@ module.exports = Object.freeze({
   DIR_OUTPUT: "output",
   DIR_RESIZED: "resized",
 
+  // IG
+  MAX_POSTS_PER_DAY: 10,
+
   // JIMP
   TEXT_WIDTH: 400,
   AUTHOR_IMAGE_OFFSET_X: 176,

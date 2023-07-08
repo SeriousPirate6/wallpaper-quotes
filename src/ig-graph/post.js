@@ -47,7 +47,7 @@ checkPublishingLimits = async ({ access_token }) => {
         },
       }
     )
-  ).data;
+  ).data.data;
   return response;
 };
 
@@ -62,6 +62,6 @@ module.exports = {
 
   getPostedLast24h: async ({ access_token }) => {
     const response = await checkPublishingLimits({ access_token });
-    return response.quota_usage;
+    return response[0].quota_usage;
   },
 };

@@ -14,10 +14,11 @@ const { generateImage } = require("./wrappers/generateImage");
 const { quoteDriveUpload } = require("./wrappers/driveUpload");
 const { checkDriveCreds } = require("./wrappers/checkDriveCreds");
 const { requireAuth } = require("./ig-graph/login/getAuthWindow");
-const { pushEnvVarsToRender } = require("./env/pushEnvVarsToRender");
+const { howMuchTillTheNextPost } = require("./ig-graph/getMedia");
 const { contructDriveUrl } = require("./utility/constructDriveUrl");
+const { pushEnvVarsToRender } = require("./env/pushEnvVarsToRender");
 const { insertQuote, getQuoteById } = require("./database/mdb-quotes");
-const { createImagePost, checkPublishingLimits } = require("./ig-graph/post");
+const { createImagePost, getPostedLast24h } = require("./ig-graph/post");
 const { getLongLiveAccessToken } = require("./ig-graph/login/getAccessToken");
 const {
   encryptAndInsertToken,
@@ -96,80 +97,97 @@ app.get("/generateQuoteImage", async ({ res }) => {
 });
 
 app.get("/getQuoteAndPostIt", async ({ res }) => {
-  await checkDriveCreds();
+  const access_token = (await decryptAndGetToken()).token;
+  const posts_number = await getPostedLast24h({ access_token });
 
-  const drive = new DriveService();
-  await drive.authenticate();
+  if (posts_number > properties.MAX_POSTS_PER_DAY) {
+    console.log(`Already reached the maximum quota of posts per day.`);
 
-  const imageFile = (
-    await drive.getAllIdsWithToken({
-      query: `${properties.QUERY_IN_PARENT(
-        process.env.DRIVE_NEWQUOTES_FOLDER
-      )} and ${properties.QUERY_NON_FOLDERS}`,
-      fields: "files(id, name, webViewLink, properties(db_quote_id))",
-    })
-  )[0];
+    const wait_till_next_post = await howMuchTillTheNextPost({ access_token });
 
-  const quoteProps = await getQuoteById({
-    quoteId: imageFile?.properties?.db_quote_id,
-  });
+    res.status(403).send({
+      status: "not allowed",
+      message: `Already reached the maximum posts quota per day`,
+      max_quote: posts_number,
+      wait_till_next_post,
+    });
+  } else {
+    await checkDriveCreds();
 
-  if (imageFile) {
-    try {
-      const permissionId = await drive.shareFile({
-        fileId: imageFile.id,
-      });
+    const drive = new DriveService();
+    await drive.authenticate();
 
-      const access_token = (await decryptAndGetToken()).token;
+    const imageFile = (
+      await drive.getAllIdsWithToken({
+        query: `${properties.QUERY_IN_PARENT(
+          process.env.DRIVE_NEWQUOTES_FOLDER
+        )} and ${properties.QUERY_NON_FOLDERS}`,
+        fields: "files(id, name, webViewLink, properties(db_quote_id))",
+      })
+    )[0];
 
-      const image_url = contructDriveUrl({ web_link: imageFile.webViewLink });
+    const quoteProps = await getQuoteById({
+      quoteId: imageFile?.properties?.db_quote_id,
+    });
 
-      const description = quoteProps?.image?.keyword
-        ? `${quoteProps?.image?.keyword}.`
-        : "Daily random quote.";
+    if (imageFile) {
+      try {
+        const permissionId = await drive.shareFile({
+          fileId: imageFile.id,
+        });
 
-      const image_credits = quoteProps?.image.user?.ig_username
-        ? `\nImage credits: @${quoteProps?.image.user?.ig_username}\n-`
-        : "";
+        const image_url = contructDriveUrl({ web_link: imageFile.webViewLink });
 
-      // TODO extracting tags dinamically
-      const tags = `#motivationalquotes #motivational #motivationalquote #MotivationalSpeaker #motivationalmonday #motivationalwords #motivationalpost #motivationalfitness #motivationalquoteoftheday #motivationalspeakers #motivationalmondays #motivationalquotesoftheday #motivationalspeaking #motivationalvideo #motivationalcoach #motivationalqoutes #MotivationalPage #motivationalspeech #motivationalposts #MotivationalPic #motivationalmoments #motivationalquotesandsayings #MotivationalQuotesDaily #motivationalhustler #MotivationalMusic #MotivationalMoment #motivationalmoments500 #motivationalthoughts #motivationalposter #motivationalaccount`;
+        const description = quoteProps?.image?.keyword
+          ? `${quoteProps?.image?.keyword}.`
+          : "Daily random quote.";
 
-      const caption = `-\n-\n${description}\n-${image_credits}\n${tags}`;
-      const postId = await createImagePost({
-        access_token,
-        image_url,
-        caption,
-      });
+        const image_credits = quoteProps?.image.user?.ig_username
+          ? `\nImage credits: @${quoteProps?.image.user?.ig_username}\n-`
+          : "";
 
-      await insertPost(postId, imageFile.id, caption);
+        // TODO extracting tags dinamically
+        const tags = `#motivationalquotes #motivational #motivationalquote #MotivationalSpeaker #motivationalmonday #motivationalwords #motivationalpost #motivationalfitness #motivationalquoteoftheday #motivationalspeakers #motivationalmondays #motivationalquotesoftheday #motivationalspeaking #motivationalvideo #motivationalcoach #motivationalqoutes #MotivationalPage #motivationalspeech #motivationalposts #MotivationalPic #motivationalmoments #motivationalquotesandsayings #MotivationalQuotesDaily #motivationalhustler #MotivationalMusic #MotivationalMoment #motivationalmoments500 #motivationalthoughts #motivationalposter #motivationalaccount`;
 
-      await drive.revokeSharePermission({ fileId: imageFile.id, permissionId });
-      await drive.updateFileParent({
-        fileId: imageFile.id,
-        newParentId: process.env.DRIVE_ARCHIVE_FOLDER,
-      });
+        const caption = `-\n-\n${description}\n-${image_credits}\n${tags}`;
+        const postId = await createImagePost({
+          access_token,
+          image_url,
+          caption,
+        });
 
-      res.send({
-        status: "success",
-        message: "Image posted successfully",
-        image: {
-          id: imageFile.id,
-          url: imageFile.webViewLink,
-        },
-      });
-    } catch (err) {
-      console.log(err);
-      res.status(500).send({
-        status: "failed",
-        message: "Something goes wrong with posting the image.",
+        await insertPost(postId, imageFile.id, caption);
+
+        await drive.revokeSharePermission({
+          fileId: imageFile.id,
+          permissionId,
+        });
+        await drive.updateFileParent({
+          fileId: imageFile.id,
+          newParentId: process.env.DRIVE_ARCHIVE_FOLDER,
+        });
+
+        res.send({
+          status: "success",
+          message: "Image posted successfully",
+          image: {
+            id: imageFile.id,
+            url: imageFile.webViewLink,
+          },
+        });
+      } catch (err) {
+        console.log(err);
+        res.status(500).send({
+          status: "failed",
+          message: "Something goes wrong with posting the image.",
+        });
+      }
+    } else {
+      res.status(204).send({
+        status: "no content",
+        message: "No images found to be posted.",
       });
     }
-  } else {
-    res.status(204).send({
-      status: "no content",
-      message: "No images found to be posted.",
-    });
   }
 });
 
