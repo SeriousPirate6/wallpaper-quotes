@@ -18,13 +18,18 @@ const { howMuchTillTheNextPost } = require("./ig-graph/getMedia");
 const { contructDriveUrl } = require("./utility/constructDriveUrl");
 const { pushEnvVarsToRender } = require("./env/pushEnvVarsToRender");
 const { insertQuote, getQuoteById } = require("./database/mdb-quotes");
-const { createImagePost, getPostedLast24h } = require("./ig-graph/post");
+const {
+  createImagePost,
+  getPostedLast24h,
+  createStoryPost,
+} = require("./ig-graph/post");
 const { getLongLiveAccessToken } = require("./ig-graph/login/getAccessToken");
 const {
   encryptAndInsertToken,
   decryptAndGetToken,
   insertPost,
 } = require("./database/mdb-ig");
+const { getVideo, getImage } = require("./pexel");
 
 const app = express();
 const port = 3000;
@@ -154,6 +159,10 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
           access_token,
           image_url,
           caption,
+        });
+        await createStoryPost({
+          access_token,
+          story_url: image_url,
         });
 
         await insertPost(postId, imageFile.id, caption);

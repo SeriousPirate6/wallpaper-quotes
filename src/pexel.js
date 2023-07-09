@@ -2,7 +2,7 @@ require("dotenv").config();
 const axios = require("axios");
 
 module.exports = {
-  getImage: (getImage = async (query) => {
+  getImage: async (query) => {
     try {
       const response = (
         await axios.get(`${process.env.PEXEL_ENDPOINT}/v1/search`, {
@@ -21,5 +21,28 @@ module.exports = {
     } catch (error) {
       console.log(error);
     }
-  }),
+  },
+
+  getVideo: async (query) => {
+    try {
+      const response = (
+        await axios.get(`${process.env.PEXEL_ENDPOINT}/v1/videos/search`, {
+          headers: {
+            Authorization: process.env.PEXEL_API_KEY,
+          },
+          params: {
+            query,
+            orientation: "portrait",
+            size: "medium",
+            page: 1,
+            per_page: 1,
+          },
+        })
+      ).data?.videos[0];
+      console.log(response);
+      return response;
+    } catch (error) {
+      console.log(error);
+    }
+  },
 };

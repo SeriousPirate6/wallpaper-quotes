@@ -1,7 +1,7 @@
 require("dotenv").config();
 const axios = require("axios");
 
-getPostId = async ({ access_token, image_url, caption }) => {
+getPostId = async ({ access_token, image_url, media_type, caption }) => {
   try {
     const response = (
       await axios.post(
@@ -10,6 +10,7 @@ getPostId = async ({ access_token, image_url, caption }) => {
         {
           params: {
             image_url,
+            media_type,
             caption,
             access_token,
           },
@@ -57,6 +58,18 @@ module.exports = {
     await postImage({ access_token, creation_id });
 
     console.log(`New post with id: ${creation_id}`);
+    return creation_id;
+  },
+
+  createStoryPost: async ({ access_token, story_url }) => {
+    const creation_id = await getPostId({
+      access_token,
+      image_url: story_url,
+      media_type: "STORIES",
+    });
+    await postImage({ access_token, creation_id });
+
+    console.log(`New story with id: ${creation_id}`);
     return creation_id;
   },
 
