@@ -110,6 +110,7 @@ module.exports = {
     textFont = Jimp.FONT_SANS_128_BLACK,
     authorName = "Author name here",
     authorFont = Jimp.FONT_SANS_32_BLACK,
+    outputPath,
   }) => {
     if (!isValidPath(imagePath)) return;
 
@@ -180,7 +181,9 @@ module.exports = {
                     );
                     mask.mask(masked_image, 0, 0);
                     fs.writeFileSync(
-                      `${dest_folder}/${file_name}_${timestamp}${file_ext}`,
+                      outputPath
+                        ? outputPath
+                        : `${dest_folder}/${file_name}_${timestamp}${file_ext}`,
                       Jimp.encoders["image/png"](
                         image
                           .blit(backgr, 0, 0)
@@ -194,9 +197,11 @@ module.exports = {
                           )
                       )
                     );
-                    deleteFolderRecursively(properties.DIR_RESIZED);
+                    // deleteFolderRecursively(properties.DIR_RESIZED);
                     resolve(
-                      `${dest_folder}/${file_name}_${timestamp}${file_ext}`
+                      outputPath
+                        ? outputPath
+                        : `${dest_folder}/${file_name}_${timestamp}${file_ext}`
                     );
                   }
                 }
