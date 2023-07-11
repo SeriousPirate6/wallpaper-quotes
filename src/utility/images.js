@@ -2,18 +2,17 @@ const fs = require("fs");
 const client = require("https");
 
 module.exports = {
-  downloadImage: (downloadImage = async (url, filepath) => {
+  downloadImage: (downloadImage = async ({ url, outputPath }) => {
     return new Promise((resolve, reject) => {
       client.get(url, (res) => {
         if (res.statusCode === 200) {
           const ext = res.headers["content-type"].split("/").pop();
-          const complete_path = `${filepath.replace(/ /g, "_")}.${ext}`;
+          const complete_path = `${outputPath.replace(/ /g, "_")}.${ext}`;
           res
             .pipe(fs.createWriteStream(complete_path))
             .on("error", reject)
             .once("close", () => {
               resolve(complete_path);
-              return complete_path;
             });
         } else {
           // Consume response data to free up memory

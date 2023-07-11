@@ -12,10 +12,10 @@ module.exports = {
 
         const duration = metadata.format.duration;
 
-        timeFormat({ timeInSeconds: duration });
+        const formattedDuration = timeFormat({ timeInSeconds: duration });
 
         console.log("Video duration:", duration);
-        resolve(duration);
+        resolve(formattedDuration);
       });
     });
   },

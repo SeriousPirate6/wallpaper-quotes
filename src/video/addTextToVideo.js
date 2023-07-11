@@ -4,10 +4,12 @@ const fs = require("fs-extra");
 const { addTextToImage } = require("../jimp");
 const { getVideoFramesPerSecond, getVideoLength } = require("./video-utility");
 const { audioCut } = require("./audio-utility");
+const { editImage } = require("./asyncJimpEdit");
+const { sharpText, maskAuthorImage } = require("./trySharpImageEdit");
 
 const exec = util.promisify(require("child_process").exec);
 
-const debug = true;
+const debug = false;
 
 const input = "input.mp4";
 const output = "output.mp4";
@@ -48,10 +50,16 @@ const audioOutput = "audio_trimmed.mp3";
     for (let count = 1; count <= frames.length; count++) {
       let frame = await Jimp.read(`temp/raw-frames/${count}.png`);
 
-      frame = await addTextToImage({
-        imagePath: `temp/raw-frames/${count}.png`,
+      sharpText({
+        inputPath: `temp/raw-frames/${count}.png`,
         outputPath: `temp/edited-frames/${count}.png`,
+        text: "Less is more.",
+        authorName: "Steve Jobs",
       });
+      //   frame = await addTextToImage({
+      //     imagePath: `temp/raw-frames/${count}.png`,
+      //     outputPath: `temp/edited-frames/${count}.png`,
+      //   });
     }
 
     await exec(
@@ -65,6 +73,8 @@ const audioOutput = "audio_trimmed.mp3";
 
     if (debug === false) {
       await fs.remove("temp");
+      await fs.unlink("audio_trimmed.mp3");
+      await fs.unlink("output.mp4");
     }
   }
 })();

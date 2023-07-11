@@ -46,6 +46,7 @@ module.exports = Object.freeze({
   // TEMPLATES
   CIRCLE_MASK: "src/templates/circle_mask.png",
   QUOTE_FRAME: "src/templates/quote-template.png",
+  VIDEO_QUOTE_FRAME: "src/templates/quote-video-template.png",
   UNKNOWN_AUTHOR: "unknown",
   UNKNOWN_AUTHOR_IMAGE:
     "https://www.maven-infotech.com/wp-content/uploads/2014/11/Iran-Faces-Mehdi-Alizadeh-Fakhrabad.png",
