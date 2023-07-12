@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const { searchPhoto } = require("./unsplash");
 const { getImageKeyWord } = require("./openai");
 const { getRandomQuote } = require("./zenquotes");
-const { deleteFile } = require("./utility/images");
+const { deleteFile } = require("./utility/media");
 const properties = require("./constants/properties");
 const { sanitize } = require("./utility/stringUtils");
 const { exportEnvVars } = require("./env/exportEnvVars");
@@ -18,18 +18,17 @@ const { howMuchTillTheNextPost } = require("./ig-graph/getMedia");
 const { contructDriveUrl } = require("./utility/constructDriveUrl");
 const { pushEnvVarsToRender } = require("./env/pushEnvVarsToRender");
 const { insertQuote, getQuoteById } = require("./database/mdb-quotes");
+const { getLongLiveAccessToken } = require("./ig-graph/login/getAccessToken");
 const {
   createImagePost,
   getPostedLast24h,
   createStoryPost,
 } = require("./ig-graph/post");
-const { getLongLiveAccessToken } = require("./ig-graph/login/getAccessToken");
 const {
   encryptAndInsertToken,
   decryptAndGetToken,
   insertPost,
 } = require("./database/mdb-ig");
-const { getVideo, getImage } = require("./pexel");
 
 const app = express();
 const port = 3000;

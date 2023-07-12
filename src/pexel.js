@@ -23,7 +23,7 @@ module.exports = {
     }
   },
 
-  getVideo: async (query) => {
+  searchVideo: async ({ query }) => {
     try {
       const response = (
         await axios.get(`${process.env.PEXEL_ENDPOINT}/v1/videos/search`, {
@@ -35,11 +35,11 @@ module.exports = {
             orientation: "portrait",
             size: "medium",
             page: 1,
-            per_page: 1,
+            per_page: 10,
           },
         })
-      ).data?.videos[0];
-      console.log(response);
+      ).data?.videos;
+      // console.log(response);
       return response;
     } catch (error) {
       console.log(error);

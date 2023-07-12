@@ -8,7 +8,7 @@ const { getAuthorImage } = require("./utility/getAuthorImage");
 const {
   getImageTypeFromUrl,
   deleteFolderRecursively,
-} = require("./utility/images");
+} = require("./utility/media");
 
 const isValidPath = (path) => {
   if (!fs.existsSync(path)) {

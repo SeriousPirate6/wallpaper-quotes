@@ -1,7 +1,7 @@
 const fs = require("fs");
 const sharp = require("sharp");
 const properties = require("../constants/properties");
-const { downloadImage } = require("../utility/images");
+const { downloadImage } = require("../utility/media");
 const { getAuthorImage } = require("../utility/getAuthorImage");
 
 module.exports = {
@@ -13,11 +13,6 @@ module.exports = {
   }) => {
     const { width, height } = await sharp(inputPath).metadata();
 
-    let authorImage = authorName.replace(" ", "_") + ".png";
-    if (!fs.existsSync(authorImage)) {
-      authorImage = await maskAuthorImage(authorName, authorImage);
-    }
-
     sharp(inputPath)
       .composite([
         {
@@ -25,7 +20,7 @@ module.exports = {
           gravity: "southeast",
         },
         {
-          input: authorImage,
+          input: "test/" + authorName.replace(" ", "_") + ".png",
           gravity: "southeast",
           top: 1687,
           left: 902,
@@ -68,11 +63,11 @@ module.exports = {
   maskAuthorImage: (maskAuthorImage = async (authorName, outputPath) => {
     const image = await downloadImage({
       url: getAuthorImage(authorName),
-      outputPath: authorName,
+      outputPath: "test/" + authorName,
     });
 
     sharp(image)
-      .resize(120, 120)
+      .resize(156, 156)
       .composite([
         {
           input: properties.CIRCLE_MASK,

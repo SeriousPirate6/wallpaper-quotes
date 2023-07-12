@@ -1,5 +1,26 @@
 const fs = require("fs");
 const client = require("https");
+const { https } = require("follow-redirects");
+
+handlingRedirects = async (videoUrl) => {
+  return new Promise((resolve) => {
+    const options = {
+      method: "HEAD",
+      maxRedirects: 10,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:34.0) Gecko/20100101 Firefox/34.0",
+      },
+    };
+
+    const request = https.request(videoUrl, options, (response) => {
+      const finalUrl = response.responseUrl;
+      resolve(finalUrl);
+    });
+
+    request.end();
+  });
+};
 
 module.exports = {
   downloadImage: (downloadImage = async ({ url, outputPath }) => {
@@ -24,6 +45,28 @@ module.exports = {
       });
     });
   }),
+
+  downloadVideo: async ({ videoUrl, outputPath }) => {
+    return new Promise(async (resolve, reject) => {
+      const fileStream = fs.createWriteStream(outputPath);
+
+      const finalUrl = await handlingRedirects(videoUrl);
+
+      client.get(finalUrl, (response) => {
+        response.pipe(fileStream);
+
+        fileStream.on("finish", () => {
+          console.log("Video downloaded successfully.");
+          resolve(finalUrl);
+        });
+
+        fileStream.on("error", (err) => {
+          console.error("Error downloading video:", err);
+          reject(err);
+        });
+      });
+    });
+  },
 
   getImageTypeFromUrl: (getImageTypeFromUrl = async (url) => {
     try {
