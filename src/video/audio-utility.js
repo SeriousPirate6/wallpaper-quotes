@@ -1,7 +1,7 @@
 const ffmpeg = require("fluent-ffmpeg");
 
 module.exports = {
-  audioCut: async ({
+  mediaCut: async ({
     audioInput,
     audioOutput,
     startTime = "00:00:00",

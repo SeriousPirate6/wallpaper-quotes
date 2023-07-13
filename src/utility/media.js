@@ -23,26 +23,28 @@ handlingRedirects = async (videoUrl) => {
 };
 
 module.exports = {
-  downloadImage: (downloadImage = async ({ url, outputPath }) => {
+  downloadMedia: (downloadMedia = async ({ mediaUrl, outputPath }) => {
     return new Promise((resolve, reject) => {
-      client.get(url, (res) => {
-        if (res.statusCode === 200) {
-          const ext = res.headers["content-type"].split("/").pop();
-          const complete_path = `${outputPath.replace(/ /g, "_")}.${ext}`;
-          res
-            .pipe(fs.createWriteStream(complete_path))
-            .on("error", reject)
-            .once("close", () => {
-              resolve(complete_path);
-            });
-        } else {
-          // Consume response data to free up memory
-          res.resume();
-          reject(
-            new Error(`Request Failed With a Status Code: ${res.statusCode}`)
-          );
-        }
-      });
+      try {
+        client.get(mediaUrl, async (res) => {
+          if (res.statusCode === 200) {
+            const complete_path = `${outputPath.replace(/ /g, "_")}`;
+            res
+              .pipe(fs.createWriteStream(complete_path))
+              .on("error", reject)
+              .once("close", () => {
+                resolve(complete_path);
+              });
+          }
+          if (res.statusCode === 302) {
+            const finalUrl = await handlingRedirects(mediaUrl);
+            resolve(await downloadMedia({ mediaUrl: finalUrl, outputPath }));
+          }
+        });
+      } catch (err) {
+        console.log(err);
+        reject;
+      }
     });
   }),
 
@@ -68,15 +70,15 @@ module.exports = {
     });
   },
 
-  getImageTypeFromUrl: (getImageTypeFromUrl = async (url) => {
+  getImageTypeFromUrl: (getImageTypeFromUrl = async (mediaUrl) => {
     try {
-      const reponse = await fetch(url, {
+      const reponse = await fetch(mediaUrl, {
         method: "HEAD",
       });
       return reponse.headers.get("Content-Type");
     } catch (err) {
       console.log(
-        `The url: '${url}' is not valid or does not contains an image.\n${err}`
+        `The mediaUrl: '${mediaUrl}' is not valid or does not contains an image.\n${err}`
       );
     }
   }),

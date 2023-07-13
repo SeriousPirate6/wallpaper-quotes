@@ -1,10 +1,8 @@
-const Jimp = require("jimp");
 const util = require("util");
 const fs = require("fs-extra");
-const { addTextToImage } = require("../jimp");
-const { getVideoFramesPerSecond, getVideoLength } = require("./video-utility");
-const { audioCut } = require("./audio-utility");
+const { mediaCut } = require("./audio-utility");
 const { sharpText, maskAuthorImage } = require("./trySharpImageEdit");
+const { getVideoFramesPerSecond, getVideoLength } = require("./media-utility");
 
 const exec = util.promisify(require("child_process").exec);
 
@@ -21,7 +19,7 @@ const audioOutput = "test/audio_trimmed.mp3";
     const video_fps = await getVideoFramesPerSecond(input);
     const video_duration = await getVideoLength(input);
 
-    const audio_cutted = await audioCut({
+    const audio_cutted = await mediaCut({
       audioInput,
       audioOutput,
       startTime: "00:00:20",
@@ -51,19 +49,14 @@ const audioOutput = "test/audio_trimmed.mp3";
 
     await maskAuthorImage(authorName, "test/" + authorImage);
 
-    for (let count = 1; count <= frames.length; count++) {
-      let frame = await Jimp.read(`temp/raw-frames/${count}.png`);
-
-      sharpText({
-        inputPath: `temp/raw-frames/${count}.png`,
-        outputPath: `temp/edited-frames/${count}.png`,
+    for await (const frame of frames) {
+      // TODO maybe use Promise.all() to speed up the process
+      await sharpText({
+        inputPath: `temp/raw-frames/${frame}`,
+        outputPath: `temp/edited-frames/${frame}`,
         text: "Less is more.",
         authorName,
       });
-      //   frame = await addTextToImage({
-      //     imagePath: `temp/raw-frames/${count}.png`,
-      //     outputPath: `temp/edited-frames/${count}.png`,
-      //   });
     }
 
     await exec(
