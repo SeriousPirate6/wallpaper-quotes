@@ -57,7 +57,7 @@ module.exports = {
         .toFile(outputPath, (error, info) => {
           if (error) {
             console.error("Error processing image:", error);
-            reject;
+            reject(error);
           } else {
             console.log("Image processed successfully");
             console.log("Output file:", info);
@@ -72,22 +72,25 @@ module.exports = {
       mediaUrl: getAuthorImage(authorName),
       outputPath: "test/" + authorName,
     });
-
-    sharp(image)
-      .resize(156, 156)
-      .composite([
-        {
-          input: properties.CIRCLE_MASK,
-          blend: "dest-in",
-        },
-      ])
-      .toFile(outputPath, (error, info) => {
-        if (error) {
-          console.error("Error processing image:", error);
-        } else {
-          console.log("Image processed successfully");
-          console.log("Output file:", info);
-        }
-      });
+    return new Promise((resolve, reject) => {
+      sharp(image)
+        .resize(156, 156)
+        .composite([
+          {
+            input: properties.CIRCLE_MASK,
+            blend: "dest-in",
+          },
+        ])
+        .toFile(outputPath, (error, info) => {
+          if (error) {
+            console.error("Error processing image:", error);
+            reject(error);
+          } else {
+            console.log("Image processed successfully");
+            console.log("Output file:", info);
+            resolve(info);
+          }
+        });
+    });
   }),
 };

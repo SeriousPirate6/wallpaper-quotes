@@ -28,7 +28,8 @@ module.exports = {
       try {
         client.get(mediaUrl, async (res) => {
           if (res.statusCode === 200) {
-            const complete_path = `${outputPath.replace(/ /g, "_")}`;
+            const ext = res.headers["content-type"].split("/").pop();
+            const complete_path = `${outputPath.replace(/ /g, "_")}.${ext}`;
             res
               .pipe(fs.createWriteStream(complete_path))
               .on("error", reject)
@@ -43,7 +44,7 @@ module.exports = {
         });
       } catch (err) {
         console.log(err);
-        reject;
+        reject(err);
       }
     });
   }),
