@@ -1,8 +1,8 @@
-const fs = require("fs");
 const sharp = require("sharp");
 const properties = require("../constants/properties");
 const { downloadMedia } = require("../utility/media");
 const { getAuthorImage } = require("../utility/getAuthorImage");
+const { generateTSpansFromQuote } = require("./generateTSpansFromQuote");
 
 module.exports = {
   sharpText: (sharpText = async ({
@@ -15,9 +15,17 @@ module.exports = {
   }) => {
     // const { width, height } = await sharp(inputPath).metadata();
 
+    // const t_spans = generateTSpansFromQuote({
+    //   quote: text,
+    // });
+
+    // console.log(t_spans);
+
+    const t_spans = [""];
+
     return new Promise((resolve, reject) => {
       sharp(inputPath)
-        .resize(targetWidth, targetHeight)
+        .resize(targetWidth, targetHeight, { fit: "inside" })
         .composite([
           {
             input: properties.VIDEO_QUOTE_FRAME,
@@ -32,10 +40,18 @@ module.exports = {
           {
             input: Buffer.from(
               `<svg width="${targetWidth}" height="${targetHeight}">
-              <style>
-              .title { fill: "white"; font-size: 70px; font-weight: bold; font-family: 'Helvetica', sans-serif;"}
-              </style>
-              <text x="50%" y="50%" fill="white" text-anchor="middle" class="title">${text}</text>
+                <style>
+                  .title {
+                    fill: "white"; font-size: 70px; font-weight: bold; font-family: 'Helvetica', sans-serif;"
+                  }
+                </style>
+                <text x="50%" y="50%" fill="white" text-anchor="middle" class="title">
+                  ${t_spans
+                    .map((row) => {
+                      return row;
+                    })
+                    .join("\n")}
+                </text>
               </svg>`
             ),
             gravity: "southeast",
@@ -43,10 +59,12 @@ module.exports = {
           {
             input: Buffer.from(
               `<svg width="${targetWidth}" height="${targetHeight}">
-              <style>
-              .title { fill: "white"; font-size: 28px; font-weight: bold; font-family: 'Helvetica', sans-serif;"}
-              </style>
-              <text x="50%" y="50%" fill="white" text-anchor="middle" class="title">${authorName}</text>
+                <style>
+                  .title {
+                    fill: "white"; font-size: 28px; font-weight: bold; font-family: 'Helvetica', sans-serif;"
+                  }
+                </style>
+                <text x="50%" y="50%" fill="white" text-anchor="middle" class="title">${authorName}</text>
               </svg>`
             ),
             gravity: "southeast",

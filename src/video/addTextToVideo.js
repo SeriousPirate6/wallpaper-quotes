@@ -1,11 +1,12 @@
 const util = require("util");
-const fs = require("fs-extra");
+const fs = require("fs");
 const { mediaCut } = require("./media-utility");
 const { sharpText, maskAuthorImage } = require("./trySharpImageEdit");
 const {
   getVideoFramesPerSecond,
   getFormattedMediaLength,
 } = require("./media-utility");
+const { deleteFolderRecursively } = require("../utility/media");
 
 const exec = util.promisify(require("child_process").exec);
 
@@ -30,9 +31,9 @@ const mediaOutput = "test/audio_trimmed.mp3";
     });
 
     console.log("Initializing temporary files");
-    await fs.mkdir("temp");
-    await fs.mkdir("temp/raw-frames");
-    await fs.mkdir("temp/edited-frames");
+    fs.mkdirSync("temp");
+    fs.mkdirSync("temp/raw-frames");
+    fs.mkdirSync("temp/edited-frames");
 
     console.log("Decoding");
     await exec(`ffmpeg -i ${input} temp/raw-frames/%d.png`);
@@ -49,7 +50,7 @@ const mediaOutput = "test/audio_trimmed.mp3";
       sharpText({
         inputPath: `temp/raw-frames/${frame}`,
         outputPath: `temp/edited-frames/${frame}`,
-        text: "Less is more.",
+        text: "The fact of the matter is that there will be nothing learned from any challenge in which we don't try our hardest.",
         authorName,
       })
     );
@@ -60,14 +61,14 @@ const mediaOutput = "test/audio_trimmed.mp3";
       `ffmpeg -r ${video_fps} -i temp/edited-frames/%d.png -i ${audio_cutted} -c:v libx264 -c:a libmp3lame -vf "fps=${video_fps},format=yuv420p" ${output}`
     );
     console.log("Cleaning up");
-    await fs.remove("temp");
+    deleteFolderRecursively("temp");
   } catch (error) {
     console.log("An error occurred:", error);
 
     if (debug === false) {
-      await fs.remove("temp");
-      await fs.unlink("test/audio_trimmed.mp3");
-      await fs.unlink("test/output.mp4");
+      deleteFolderRecursively("temp");
+      deleteFolderRecursively("test/audio_trimmed.mp3");
+      // deleteFolderRecursively("test/output.mp4");
     }
   }
 })();
