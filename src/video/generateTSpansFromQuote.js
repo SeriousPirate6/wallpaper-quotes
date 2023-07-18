@@ -1,18 +1,25 @@
 const fonts = require("../constants/fonts");
+const { isLinuxOs } = require("../utility/getOS");
 const {
   getTextWidth,
   charsPerRow,
   divideTextIntoRows,
   getFirstLineSpacing,
   generateTSpans,
-} = require("./svgImage");
+  measureTextWidth,
+} = require("../utility/svgImage");
 
 module.exports = {
-  generateTSpansFromQuote: ({ quote }) => {
-    const textWidth = getTextWidth({
-      text: quote,
-      fontPath: fonts.HELVETICA_BOLD_TTF,
-    });
+  generateTSpansFromQuote: async ({ quote }) => {
+    const textWidth = isLinuxOs() // handling Windows issue using both Sharp and Canvas
+      ? getTextWidth({
+          text: quote,
+          fontPath: fonts.HELVETICA_BOLD_TTF,
+        })
+      : await measureTextWidth({
+          text: quote,
+          fontPath: fonts.HELVETICA_BOLD_TTF,
+        });
 
     const chars_per_row = charsPerRow({
       width: 1080,

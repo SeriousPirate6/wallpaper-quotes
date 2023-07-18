@@ -127,6 +127,7 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
           process.env.DRIVE_NEWQUOTES_FOLDER
         )} and ${properties.QUERY_NON_FOLDERS}`,
         fields: "files(id, name, webViewLink, properties(db_quote_id))",
+        orderBy: "createdTime asc",
       })
     )[0];
 
@@ -215,28 +216,6 @@ app.patch("/pushEnvVarsToRender", async ({ res }) => {
     });
   }
 });
-
-const os = require("os");
-const { execSync } = require("child_process");
-
-const platform = os.platform();
-
-console.log("Operating System:", platform);
-
-if (platform === "linux") {
-  function installFont(fontPath) {
-    try {
-      // Install the font using the 'fc-cache' command
-      execSync(`fc-cache -f -v ${fontPath}`);
-      console.log("Font installed successfully.");
-    } catch (error) {
-      console.error("Error installing font:", error);
-    }
-  }
-
-  // Example usage: install a font file located at '/path/to/font.ttf'
-  installFont("Rhuma Sinera Regular.ttf");
-}
 
 app.listen(port, () => {
   console.log(`Running on port: ${port}`);

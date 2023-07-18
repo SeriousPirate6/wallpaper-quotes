@@ -1,5 +1,6 @@
 const { searchVideo } = require("../pexel");
 const { downloadMedia } = require("../utility/media");
+const { addTextToVideo } = require("../video/addTextToVideo");
 const { mediaCut, getLastSecondsGap } = require("../video/media-utility");
 
 module.exports = {
@@ -12,21 +13,40 @@ module.exports = {
         .link,
       outputPath: "downloaded_video",
     });
+    // const videoPath = "downloaded_video.mp4";
 
     const lastSeconds = await getLastSecondsGap({
       mediaInput: videoPath,
-      seconds: 5,
+      secondsToCut: 5.5,
     });
 
     const video_trimmed = await mediaCut({
       mediaInput: videoPath,
       mediaOutput: "test/output_trimmed.mp4",
       startTime: lastSeconds.init,
-      duration: lastSeconds.end,
+      duration: lastSeconds.duration,
+    });
+
+    const videoOutput = "test/output.mp4";
+
+    const audioInput = "test/audio.mp3";
+    const audioOutput = "test/audio_trimmed.mp3";
+
+    await addTextToVideo({
+      quote: db_quote,
+      videoInput: video_trimmed,
+      videoOutput,
+      audioInput,
+      audioOutput,
     });
   }),
 };
 
 (async () => {
-  await generateVideo({ image: { keyword: "skyscraper" } });
+  await generateVideo({
+    phrase:
+      "You have power over your mind - not outside events. Realize this, and you will find strength.",
+    image: { keyword: "rose" },
+    author: { name: "Marcus Aurelius" },
+  });
 })();

@@ -1,5 +1,5 @@
 const path = require("path");
-const { createCanvas } = require("canvas");
+const puppeteer = require("puppeteer");
 const { isLinuxOs } = require("../utility/getOS");
 const { installFontRender } = require("../utility/installFontRender");
 
@@ -11,6 +11,8 @@ pixelsPerChar = ({ textWidth, charCount }) => {
 
 module.exports = {
   getTextWidth: ({ text, fontSize = 70, fontWeight = "Bold", fontPath }) => {
+    const { createCanvas } = require("canvas");
+
     const canvas = createCanvas(200, 100);
     const context = canvas.getContext("2d");
 
@@ -26,6 +28,41 @@ module.exports = {
     console.log(`${textWidth} - text width`);
 
     return textWidth;
+  },
+
+  measureTextWidth: async ({
+    text,
+    fontSize = 70,
+    fontWeight = "Bold",
+    fontPath,
+  }) => {
+    if (fontPath) installFontRender({ fontPath });
+
+    const svgContent = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+      <text x="10" y="50" font-size="${fontSize}" font-family: '${
+      fontPath && isLinuxOs()
+        ? path.basename(fontPath, path.extname(fontPath))
+        : "Helvetica"
+    }' font-weight="${fontWeight}">${text}</text>
+    </svg>
+    `;
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      defaultArgs: ["--silent"], // suppressing warnings
+    });
+    const page = await browser.newPage();
+
+    await page.setContent(svgContent);
+
+    const textElement = await page.$("text");
+    const { width } = await textElement.boundingBox();
+
+    console.log(`${width} - text width`);
+    await browser.close();
+
+    return width;
   },
 
   charsPerRow: ({ width, textWidth, charCount }) => {

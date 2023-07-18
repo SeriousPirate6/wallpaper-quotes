@@ -1,19 +1,36 @@
 const ffmpeg = require("fluent-ffmpeg");
 const { timeFormat } = require("../utility/timeFormat");
 
-getMediaLength = async (videoPath) => {
-  return new Promise((resolve, reject) => {
-    ffmpeg.ffprobe(videoPath, (err, metadata) => {
-      if (err) {
-        console.error("Error getting video duration:", err);
-        reject(err);
-      }
-      resolve(metadata.format.duration);
-    });
-  });
+getSecondsGap = ({ mediaLength, secondsToCut, timeInit, duration }) => {
+  if (isNaN(secondsToCut)) {
+    console.log(`Param "seconds" must be of numeric type.`);
+    return;
+  }
+
+  if (mediaLength < secondsToCut)
+    return {
+      init: "00:00:00.000",
+      duration: timeFormat({ timeInSeconds: mediaLength }),
+    };
+  return {
+    init: timeFormat({ timeInSeconds: timeInit }),
+    duration: timeFormat({ timeInSeconds: duration }),
+  };
 };
 
 module.exports = {
+  getMediaLength: (getMediaLength = async (videoPath) => {
+    return new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(videoPath, (err, metadata) => {
+        if (err) {
+          console.error("Error getting video duration:", err);
+          reject(err);
+        }
+        resolve(metadata.format.duration);
+      });
+    });
+  }),
+
   getFormattedMediaLength: async (videoPath) => {
     const duration = await getMediaLength(videoPath);
     const formattedDuration = timeFormat({ timeInSeconds: duration });
@@ -36,23 +53,26 @@ module.exports = {
     });
   },
 
-  getLastSecondsGap: async ({ mediaInput, seconds }) => {
-    if (isNaN(seconds)) {
-      console.log(`Param "seconds" must be of numeric type.`);
-      return;
-    }
-
+  getMiddleSecondsGap: async ({ mediaInput, secondsToCut }) => {
     const mediaLength = await getMediaLength(mediaInput);
+    const starting_time = Number(((mediaLength - secondsToCut) / 2).toFixed(3));
 
-    if (mediaLength < seconds)
-      return {
-        init: "00:00:00.000",
-        end: timeFormat({ timeInSeconds: mediaLength }),
-      };
-    return {
-      init: timeFormat({ timeInSeconds: mediaLength - seconds }),
-      end: timeFormat({ timeInSeconds: mediaLength }),
-    };
+    return getSecondsGap({
+      mediaLength,
+      secondsToCut,
+      timeInit: starting_time,
+      duration: secondsToCut,
+    });
+  },
+
+  getLastSecondsGap: async ({ mediaInput, secondsToCut }) => {
+    const mediaLength = await getMediaLength(mediaInput);
+    return getSecondsGap({
+      mediaLength,
+      secondsToCut,
+      timeInit: mediaLength - secondsToCut,
+      duration: secondsToCut,
+    });
   },
 
   mediaCut: async ({

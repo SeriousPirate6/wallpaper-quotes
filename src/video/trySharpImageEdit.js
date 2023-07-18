@@ -2,26 +2,17 @@ const sharp = require("sharp");
 const properties = require("../constants/properties");
 const { downloadMedia } = require("../utility/media");
 const { getAuthorImage } = require("../utility/getAuthorImage");
-const { generateTSpansFromQuote } = require("./generateTSpansFromQuote");
 
 module.exports = {
   sharpText: (sharpText = async ({
     inputPath,
     outputPath,
-    text,
+    t_spans,
     authorName,
     targetWidth = 1080,
     targetHeight = 1920,
   }) => {
     // const { width, height } = await sharp(inputPath).metadata();
-
-    // const t_spans = generateTSpansFromQuote({
-    //   quote: text,
-    // });
-
-    // console.log(t_spans);
-
-    const t_spans = [""];
 
     return new Promise((resolve, reject) => {
       sharp(inputPath)
@@ -34,8 +25,8 @@ module.exports = {
           {
             input: "test/" + authorName.replace(" ", "_") + ".png",
             gravity: "southeast",
-            top: 1687,
-            left: 902,
+            top: targetHeight - 233,
+            left: targetWidth - 178,
           },
           {
             input: Buffer.from(
