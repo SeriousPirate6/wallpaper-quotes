@@ -12,18 +12,19 @@ module.exports = {
     targetWidth = 1080,
     targetHeight = 1920,
   }) => {
-    // const { width, height } = await sharp(inputPath).metadata();
-
     return new Promise((resolve, reject) => {
       sharp(inputPath)
-        .resize(targetWidth, targetHeight, { fit: "inside" })
+        .resize(targetWidth, targetHeight)
         .composite([
           {
             input: properties.VIDEO_QUOTE_FRAME,
             gravity: "southeast",
           },
           {
-            input: "test/" + authorName.replace(" ", "_") + ".png",
+            input: `${properties.DIR_VIDEO_TEMP}/${authorName.replace(
+              " ",
+              "_"
+            )}.png`,
             gravity: "southeast",
             top: targetHeight - 233,
             left: targetWidth - 178,
@@ -79,7 +80,7 @@ module.exports = {
   maskAuthorImage: (maskAuthorImage = async (authorName, outputPath) => {
     const image = await downloadMedia({
       mediaUrl: getAuthorImage(authorName),
-      outputPath: "test/" + authorName,
+      outputPath: `${properties.DIR_VIDEO_TEMP}/${authorName}`,
     });
     return new Promise((resolve, reject) => {
       sharp(image)

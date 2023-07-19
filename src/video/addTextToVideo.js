@@ -4,11 +4,14 @@ const {
   mediaCut,
   getMiddleSecondsGap,
   getMediaLength,
+  videoDimensions,
+  videoCrop,
 } = require("./media-utility");
 const { sharpText, maskAuthorImage } = require("./trySharpImageEdit");
 const { getVideoFramesPerSecond } = require("./media-utility");
 const { deleteFolderRecursively } = require("../utility/media");
 const { generateTSpansFromQuote } = require("./generateTSpansFromQuote");
+const properties = require("../constants/properties");
 const exec = util.promisify(require("child_process").exec);
 
 const debug = false;
@@ -20,6 +23,8 @@ module.exports = {
     videoOutput,
     audioInput,
     audioOutput,
+    targetWidth = 1080,
+    targetHeight = 1920,
   }) => {
     try {
       const video_fps = await getVideoFramesPerSecond(videoInput);
@@ -37,6 +42,14 @@ module.exports = {
         duration: audio_timestamps.duration,
       });
 
+      const video_dimensions = await videoDimensions({ videoInput });
+      if (
+        video_dimensions.width > targetWidth ||
+        video_dimensions.height > targetHeight
+      ) {
+        videoInput = await videoCrop({ videoInput });
+      }
+
       console.log("Initializing temporary files");
       fs.mkdirSync("temp");
       fs.mkdirSync("temp/raw-frames");
@@ -51,7 +64,10 @@ module.exports = {
       const authorName = quote.author.name;
       const authorImage = authorName.replace(" ", "_") + ".png";
 
-      await maskAuthorImage(authorName, "test/" + authorImage);
+      await maskAuthorImage(
+        authorName,
+        `${properties.DIR_VIDEO_TEMP}/${authorImage}`
+      );
 
       const t_spans = await generateTSpansFromQuote({
         quote: quote.phrase,
@@ -69,7 +85,7 @@ module.exports = {
       await Promise.all(allFramesReady);
 
       await exec(
-        `ffmpeg -r ${video_fps} -i temp/edited-frames/%d.png -i ${audio_cutted} -c:v libx264 -c:a libmp3lame -vf "fps=${video_fps},format=yuv420p" ${videoOutput}`
+        `ffmpeg -r ${video_fps} -i temp/edited-frames/%d.png -i ${audio_cutted} -c:v libx264 -c:a libmp3lame -vf "fps=${video_fps},format=yuv420p" -y ${videoOutput}`
       );
       console.log("Cleaning up");
       deleteFolderRecursively("temp");
@@ -80,8 +96,10 @@ module.exports = {
 
       if (debug === false) {
         deleteFolderRecursively("temp");
-        deleteFolderRecursively("test/audio_trimmed.mp3");
-        deleteFolderRecursively("test/videoOutput.mp4");
+        deleteFolderRecursively(
+          `${properties.DIR_VIDEO_TEMP}/audio_trimmed.mp3`
+        );
+        deleteFolderRecursively(`${properties.DIR_VIDEO_TEMP}/videoOutput.mp4`);
       }
     }
   },

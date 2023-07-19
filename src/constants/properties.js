@@ -15,6 +15,7 @@ module.exports = Object.freeze({
   // FOLDERS
   DIR_OUTPUT: "output",
   DIR_RESIZED: "resized",
+  DIR_VIDEO_TEMP: "test",
 
   // IG
   MAX_POSTS_PER_DAY: 10,

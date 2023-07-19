@@ -1,5 +1,9 @@
+const util = require("util");
 const ffmpeg = require("fluent-ffmpeg");
+const ffmpegPath = require("ffprobe-static").path;
 const { timeFormat } = require("../utility/timeFormat");
+const properties = require("../constants/properties");
+const exec = util.promisify(require("child_process").exec);
 
 getSecondsGap = ({ mediaLength, secondsToCut, timeInit, duration }) => {
   if (isNaN(secondsToCut)) {
@@ -95,6 +99,35 @@ module.exports = {
           reject(err);
         })
         .run();
+    });
+  },
+
+  videoCrop: async ({
+    videoInput,
+    videoOutput = `${properties.DIR_VIDEO_TEMP}/output-cropped.mp4`,
+    cropWidth = 1080,
+    cropHeight = 1920,
+    cropX = 0,
+    cropY = 0,
+  }) => {
+    await exec(
+      `ffmpeg -i ${videoInput} -filter:v "crop=${cropWidth}:${cropHeight}:${cropX}:${cropY}" -y ${videoOutput}`
+    );
+    return videoOutput;
+  },
+
+  videoDimensions: async ({ videoInput }) => {
+    ffmpeg.setFfprobePath(ffmpegPath);
+
+    return new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(videoInput, (err, metadata) => {
+        if (err) {
+          console.error("Error getting video information:", err);
+          reject(err);
+        }
+        const { width, height } = metadata.streams[0];
+        resolve({ width, height });
+      });
     });
   },
 };

@@ -1,3 +1,4 @@
+const properties = require("../constants/properties");
 const { searchVideo } = require("../pexel");
 const { downloadMedia } = require("../utility/media");
 const { addTextToVideo } = require("../video/addTextToVideo");
@@ -11,9 +12,9 @@ module.exports = {
     const videoPath = await downloadMedia({
       mediaUrl: video[rand].video_files.find((video) => video.width === 1080)
         .link,
-      outputPath: "downloaded_video",
+      outputPath: `${properties.DIR_VIDEO_TEMP}/downloaded_video`,
     });
-    // const videoPath = "downloaded_video.mp4";
+    // const videoPath = `${properties.DIR_VIDEO_TEMP}/downloaded_video.mp4`;
 
     const lastSeconds = await getLastSecondsGap({
       mediaInput: videoPath,
@@ -22,15 +23,15 @@ module.exports = {
 
     const video_trimmed = await mediaCut({
       mediaInput: videoPath,
-      mediaOutput: "test/output_trimmed.mp4",
+      mediaOutput: `${properties.DIR_VIDEO_TEMP}/output_trimmed.mp4`,
       startTime: lastSeconds.init,
       duration: lastSeconds.duration,
     });
 
-    const videoOutput = "test/output.mp4";
+    const videoOutput = `${properties.DIR_VIDEO_TEMP}/output.mp4`;
 
-    const audioInput = "test/audio.mp3";
-    const audioOutput = "test/audio_trimmed.mp3";
+    const audioInput = `${properties.DIR_VIDEO_TEMP}/audio.mp3`;
+    const audioOutput = `${properties.DIR_VIDEO_TEMP}/audio_trimmed.mp3`;
 
     await addTextToVideo({
       quote: db_quote,
