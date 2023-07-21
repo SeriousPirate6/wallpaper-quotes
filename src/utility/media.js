@@ -27,19 +27,25 @@ module.exports = {
     return new Promise((resolve, reject) => {
       try {
         client.get(mediaUrl, async (res) => {
-          if (res.statusCode === 200) {
-            const ext = res.headers["content-type"].split("/").pop();
-            const complete_path = `${outputPath.replace(/ /g, "_")}.${ext}`;
-            res
-              .pipe(fs.createWriteStream(complete_path))
-              .on("error", reject)
-              .once("close", () => {
-                resolve(complete_path);
-              });
-          }
-          if (res.statusCode === 302) {
-            const finalUrl = await handlingRedirects(mediaUrl);
-            resolve(await downloadMedia({ mediaUrl: finalUrl, outputPath }));
+          switch (res.statusCode) {
+            case 200:
+              const ext = res.headers["content-type"].split("/").pop();
+              const complete_path = `${outputPath.replace(/ /g, "_")}.${ext}`;
+              res
+                .pipe(fs.createWriteStream(complete_path))
+                .on("error", reject)
+                .once("close", () => {
+                  resolve(complete_path);
+                });
+              break;
+            case 302:
+              const finalUrl = await handlingRedirects(mediaUrl);
+              resolve(await downloadMedia({ mediaUrl: finalUrl, outputPath }));
+              break;
+            default:
+              console.log(
+                `Download not available, status code: ${res.statusCode}`
+              );
           }
         });
       } catch (err) {
