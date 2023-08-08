@@ -25,6 +25,10 @@ module.exports = Object.freeze({
   AUTHOR_IMAGE_OFFSET_X: 176,
   AUTHOR_IMAGE_OFFSET_Y: 175,
 
+  // MEDIA FETCHING PLATFORMS
+  PEXEL: "https://www.pexels.com/",
+  UNSPLASH: "https://unsplash.com/",
+
   // MEDIA FORMATS
   MEDIA_FORMAT: {
     JPG: ".jpg",
@@ -43,6 +47,9 @@ module.exports = Object.freeze({
   PROMPT_IMAGE_DESCRIPTION: `given a sentence, find an image to attach to it in one word.
     sentence: ${PROMPT_PLACEHOLDER}
     answer:`,
+
+  // POST TYPE
+  REEL: "reel",
 
   // TEMPLATES
   CIRCLE_MASK: "src/templates/circle_mask.png",

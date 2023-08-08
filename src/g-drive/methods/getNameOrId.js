@@ -40,6 +40,6 @@ module.exports = {
     const response = await drive.files.get({
       fileId: fileId,
     });
-    return response.data.name;
+    return response.data;
   },
 };

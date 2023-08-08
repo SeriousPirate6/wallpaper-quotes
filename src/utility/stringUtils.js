@@ -59,4 +59,17 @@ module.exports = {
     decrypted += decipher.final("utf8");
     return decrypted;
   },
+
+  stringToMap: (inputString) => {
+    const keyValuePairs = inputString.split(";");
+
+    const keyValueMap = new Map();
+
+    keyValuePairs.forEach((pair) => {
+      const [key, value] = pair.split("=").map((pair) => pair.trim());
+      keyValueMap.set(key, value);
+    });
+
+    return keyValueMap;
+  },
 };

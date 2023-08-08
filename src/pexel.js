@@ -39,8 +39,9 @@ module.exports = {
           },
         })
       ).data?.videos;
-      // console.log(response);
-      return response;
+
+      const rand = Math.floor(Math.random() * response.length);
+      return response[rand];
     } catch (error) {
       console.log(error);
     }

@@ -1,3 +1,6 @@
+const properties = require("../constants/properties");
+const { DriveService } = require("../g-drive/DriveService");
+
 module.exports = {
   driveDeleteFromNames: async (names) => {
     if (!Array.isArray(names)) {

@@ -1,7 +1,9 @@
 require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
+const { searchVideo } = require("./pexel");
 const { searchPhoto } = require("./unsplash");
+const rateLimit = require("express-rate-limit");
 const { getImageKeyWord } = require("./openai");
 const { getRandomQuote } = require("./zenquotes");
 const { deleteFile } = require("./utility/media");
@@ -11,6 +13,7 @@ const { exportEnvVars } = require("./env/exportEnvVars");
 const { DriveService } = require("./g-drive/DriveService");
 const { getProperties } = require("./utility/getProperties");
 const { generateImage } = require("./wrappers/generateImage");
+const { generateVideo } = require("./wrappers/generateVideo");
 const { quoteDriveUpload } = require("./wrappers/driveUpload");
 const { checkDriveCreds } = require("./wrappers/checkDriveCreds");
 const { requireAuth } = require("./ig-graph/login/getAuthWindow");
@@ -23,18 +26,41 @@ const {
   createImagePost,
   getPostedLast24h,
   createStoryPost,
+  createReelPost,
 } = require("./ig-graph/post");
 const {
   encryptAndInsertToken,
   decryptAndGetToken,
   insertPost,
 } = require("./database/mdb-ig");
+const { driveGetFilesOrFolders } = require("./wrappers/driveGetFilesOrFolders");
 
-const app = express();
 const port = 3000;
+const app = express();
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
+app.set("trust proxy", ["loopback", "linklocal", "uniquelocal"]);
+app.set("trust proxy", 0);
+
+const defaultRateLimiter = rateLimit({
+  windowMs: 3 * 60 * 1000, // amount of time
+  max: 1, // number of requests
+  message: {
+    status: "not available",
+    message: "Too many requests, please try again later.",
+  },
+  skip: (req) => false,
+});
+
+(async () => {
+  // await driveGetFilesOrFolders(["Reels"]);
+})();
+
+app.get("/ping", async ({ res }) => {
+  res.send({ staus: "success", message: "Service online." });
+});
 
 app.get("/requireAuthWindow", async ({ res }) => {
   const auth_url = requireAuth();
@@ -52,32 +78,44 @@ app.get("/getAuthentication", async (req, res) => {
   } else res.status(400, "The param 'code' is mandatory");
 });
 
-app.get("/generateQuoteImage", async ({ res }) => {
+app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
+  const is_reel = req.query.type === properties.REEL ? true : false;
+
   await checkDriveCreds();
 
   try {
     const quote = await getRandomQuote();
-    const image_description = sanitize(await getImageKeyWord(quote.q));
+    const media_description = sanitize(await getImageKeyWord(quote.q));
 
-    const image = await searchPhoto({
-      query: image_description,
-      per_page: 20,
+    const media = !is_reel
+      ? await searchPhoto({
+          query: media_description,
+          per_page: 20,
+        })
+      : await searchVideo({ query: media_description });
+
+    db_quote = getProperties({
+      quote,
+      image: !is_reel ? media : null,
+      video: is_reel ? media : null,
+      media_description,
     });
-
-    db_quote = getProperties({ quote, image, image_description });
     const quoteId = await insertQuote(db_quote);
 
     if (quoteId) {
       db_quote.id = quoteId;
 
-      const image = await generateImage({ db_quote });
+      const media = !is_reel
+        ? await generateImage({ db_quote })
+        : await generateVideo({ db_quote });
 
       const image_id = await quoteDriveUpload({
-        image,
+        media,
         db_quote,
+        type: is_reel ? properties.REEL : null,
       });
 
-      deleteFile(image);
+      deleteFile(media);
       res.send({
         status: "success",
         message: "Image generated and uploaded correctly.",
@@ -100,14 +138,18 @@ app.get("/generateQuoteImage", async ({ res }) => {
   }
 });
 
-app.get("/getQuoteAndPostIt", async ({ res }) => {
+app.get("/getQuoteAndPostIt", defaultRateLimiter, async (req, res) => {
+  const is_reel = req.query.type === properties.REEL ? true : false;
+
   const access_token = (await decryptAndGetToken()).token;
   const posts_number = await getPostedLast24h({ access_token });
 
   if (posts_number > properties.MAX_POSTS_PER_DAY) {
     console.log(`Already reached the maximum quota of posts per day.`);
 
-    const wait_till_next_post = await howMuchTillTheNextPost({ access_token });
+    const wait_till_next_post = await howMuchTillTheNextPost({
+      access_token,
+    });
 
     res.status(403).send({
       status: "not allowed",
@@ -121,10 +163,12 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
     const drive = new DriveService();
     await drive.authenticate();
 
-    const imageFile = (
+    const mediaFile = (
       await drive.getAllIdsWithToken({
         query: `${properties.QUERY_IN_PARENT(
-          process.env.DRIVE_NEWQUOTES_FOLDER
+          !is_reel
+            ? process.env.DRIVE_NEWQUOTES_FOLDER
+            : process.env.DRIVE_NEWQUOTES_VIDEO_FOLDER
         )} and ${properties.QUERY_NON_FOLDERS}`,
         fields: "files(id, name, webViewLink, properties(db_quote_id))",
         orderBy: "createdTime asc",
@@ -132,22 +176,24 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
     )[0];
 
     const quoteProps = await getQuoteById({
-      quoteId: imageFile?.properties?.db_quote_id,
+      quoteId: mediaFile?.properties?.db_quote_id,
     });
 
-    if (imageFile) {
+    if (mediaFile) {
       try {
         const permissionId = await drive.shareFile({
-          fileId: imageFile.id,
+          fileId: mediaFile.id,
         });
 
-        const image_url = contructDriveUrl({ web_link: imageFile.webViewLink });
+        const media_url = await contructDriveUrl({
+          web_link: mediaFile.webViewLink,
+        });
 
         const description = quoteProps?.image?.keyword
           ? `${quoteProps?.image?.keyword}.`
           : "Daily random quote.";
 
-        const image_credits = quoteProps?.image.user?.ig_username
+        const image_credits = quoteProps?.image?.user?.ig_username
           ? `\nImage credits: @${quoteProps?.image.user?.ig_username}\n-`
           : "";
 
@@ -155,33 +201,43 @@ app.get("/getQuoteAndPostIt", async ({ res }) => {
         const tags = `#motivationalquotes #motivational #motivationalquote #MotivationalSpeaker #motivationalmonday #motivationalwords #motivationalpost #motivationalfitness #motivationalquoteoftheday #motivationalspeakers #motivationalmondays #motivationalquotesoftheday #motivationalspeaking #motivationalvideo #motivationalcoach #motivationalqoutes #MotivationalPage #motivationalspeech #motivationalposts #MotivationalPic #motivationalmoments #motivationalquotesandsayings #MotivationalQuotesDaily #motivationalhustler #MotivationalMusic #MotivationalMoment #motivationalmoments500 #motivationalthoughts #motivationalposter #motivationalaccount`;
 
         const caption = `-\n-\n${description}\n-${image_credits}\n${tags}`;
-        const postId = await createImagePost({
-          access_token,
-          image_url,
-          caption,
-        });
+        const postId = !is_reel
+          ? await createImagePost({
+              access_token,
+              media_url,
+              caption,
+            })
+          : await createReelPost({
+              access_token,
+              media_url,
+              caption,
+            });
+
         await createStoryPost({
           access_token,
-          story_url: image_url,
+          story_url: media_url,
+          is_reel,
         });
 
-        await insertPost(postId, imageFile.id, caption);
+        await insertPost(postId, mediaFile.id, caption);
 
         await drive.revokeSharePermission({
-          fileId: imageFile.id,
+          fileId: mediaFile.id,
           permissionId,
         });
         await drive.updateFileParent({
-          fileId: imageFile.id,
-          newParentId: process.env.DRIVE_ARCHIVE_FOLDER,
+          fileId: mediaFile.id,
+          newParentId: !is_reel
+            ? process.env.DRIVE_ARCHIVE_FOLDER
+            : process.env.DRIVE_ARCHIVE_VIDEO_FOLDER,
         });
 
         res.send({
           status: "success",
           message: "Image posted successfully",
           image: {
-            id: imageFile.id,
-            url: imageFile.webViewLink,
+            id: mediaFile.id,
+            url: mediaFile.webViewLink,
           },
         });
       } catch (err) {

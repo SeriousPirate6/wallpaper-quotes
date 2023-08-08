@@ -6,6 +6,7 @@ module.exports = {
     query = false,
     fields = false,
     orderBy = false,
+    print = true,
   }) => {
     const drive = google.drive({ version: "v3", auth });
     let foldersList = [];
@@ -27,7 +28,7 @@ module.exports = {
         foldersList.push(file);
       });
     }
-    console.log(foldersList);
+    if (print) console.log(foldersList);
     return foldersList;
   },
 };

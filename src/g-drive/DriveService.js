@@ -27,12 +27,14 @@ module.exports = {
       query = false,
       fields = false,
       orderBy = false,
+      print = false,
     }) => {
       return await getAllIdsWithToken({
         auth: this.auth,
         query,
         fields,
         orderBy,
+        print,
       });
     };
 
