@@ -1,11 +1,17 @@
-const { searchVideo } = require("../pexel");
+const fs = require("fs");
 const properties = require("../constants/properties");
 const { downloadMedia } = require("../utility/media");
 const { addTextToVideo } = require("../video/addTextToVideo");
 const { mediaCut, getLastSecondsGap } = require("../video/media-utility");
+const { downloadAudio } = require("../freesound");
 
 module.exports = {
   generateVideo: (generateVideo = async ({ db_quote }) => {
+    if (!fs.existsSync(properties.DIR_VIDEO_TEMP)) {
+      console.log(`Creating folder: '${properties.DIR_VIDEO_TEMP}'`);
+      fs.mkdirSync(properties.DIR_VIDEO_TEMP);
+    }
+
     const videoPath = await downloadMedia({
       mediaUrl: db_quote.video.url,
       outputPath: `${properties.DIR_VIDEO_TEMP}/downloaded_video`,
@@ -25,7 +31,10 @@ module.exports = {
 
     const videoOutput = `${properties.DIR_VIDEO_TEMP}/output.mp4`;
 
-    const audioInput = `${properties.DIR_VIDEO_TEMP}/audio.wav`;
+    const audioInput = await downloadAudio({
+      query: "calming sounds",
+      pathNoName: properties.DIR_VIDEO_TEMP,
+    });
     const audioOutput = `${properties.DIR_VIDEO_TEMP}/audio_trimmed.wav`;
 
     const videoEdited = await addTextToVideo({

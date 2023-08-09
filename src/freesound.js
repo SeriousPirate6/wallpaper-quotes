@@ -42,36 +42,35 @@ module.exports = {
     return url;
   }),
 
-  downloadAudio: (downloadAudio = async ({ query }) => {
+  downloadAudio: (downloadAudio = async ({ query, pathNoName }) => {
     const url = await getAudioLink({ query });
 
-    axios({
-      method: "get",
-      url,
-      responseType: "arraybuffer",
-      headers: {
-        Authorization: `Bearer ${process.env.FREESOUND_ACCESS_TOKEN}`,
-      },
-    })
-      .then((response) => {
-        const contentDisposition = response.headers["content-disposition"];
-
-        const outputFile = stringToMap(contentDisposition)
-          .get("filename")
-          .replace(/"/g, "");
-
-        fs.writeFileSync(outputFile, response.data);
-
-        console.log("Audio downloaded successfully.");
+    return new Promise((resolve, reject) => {
+      axios({
+        method: "get",
+        url,
+        responseType: "arraybuffer",
+        headers: {
+          Authorization: `Bearer ${process.env.FREESOUND_ACCESS_TOKEN}`,
+        },
       })
-      .catch((error) => {
-        console.error("Error downloading audio:", error.message);
-      });
+        .then((response) => {
+          const contentDisposition = response.headers["content-disposition"];
+
+          const outputFile =
+            pathNoName +
+            "/" +
+            stringToMap(contentDisposition).get("filename").replace(/"/g, "");
+
+          fs.writeFileSync(outputFile, response.data);
+
+          console.log("Audio downloaded successfully.");
+          resolve(outputFile);
+        })
+        .catch((error) => {
+          console.error("Error downloading audio:", error.message);
+          reject(error.message);
+        });
+    });
   }),
 };
-
-(async () => {
-  //   const audio = await getAudioLink({ query: "calming sounds" });
-  //   const audio = await downloadAudio({ query: "classical music" });
-  //   await downloadMedia({ mediaUrl: audio, outputPath: "downloaded_audio" });
-})();
