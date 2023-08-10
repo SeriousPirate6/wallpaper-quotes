@@ -118,7 +118,7 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
       deleteFile(media);
       res.send({
         status: "success",
-        message: "Image generated and uploaded correctly.",
+        message: "Media generated and uploaded correctly.",
         image: {
           id: image_id,
         },
@@ -126,7 +126,7 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
     } else {
       res.status(500).send({
         status: "failed",
-        message: "The image could not be uploaded.",
+        message: "The media could not be uploaded.",
       });
     }
   } catch (err) {
@@ -234,7 +234,7 @@ app.get("/getQuoteAndPostIt", defaultRateLimiter, async (req, res) => {
 
         res.send({
           status: "success",
-          message: "Image posted successfully",
+          message: "Media posted successfully",
           image: {
             id: mediaFile.id,
             url: mediaFile.webViewLink,
@@ -244,13 +244,13 @@ app.get("/getQuoteAndPostIt", defaultRateLimiter, async (req, res) => {
         console.log(err);
         res.status(500).send({
           status: "failed",
-          message: "Something goes wrong with posting the image.",
+          message: "Something goes wrong with posting the media.",
         });
       }
     } else {
       res.status(204).send({
         status: "no content",
-        message: "No images found to be posted.",
+        message: "No media found to be posted.",
       });
     }
   }

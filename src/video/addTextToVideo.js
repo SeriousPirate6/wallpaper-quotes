@@ -40,6 +40,7 @@ module.exports = {
         mediaOutput: audioOutput,
         startTime: audio_timestamps.init,
         duration: audio_timestamps.duration,
+        threadCount: 1,
       });
 
       const video_dimensions = await videoDimensions({ videoInput });

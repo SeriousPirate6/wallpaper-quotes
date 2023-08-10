@@ -2,7 +2,7 @@ const fs = require("fs");
 const properties = require("../constants/properties");
 const { downloadMedia } = require("../utility/media");
 const { addTextToVideo } = require("../video/addTextToVideo");
-const { mediaCut, getLastSecondsGap } = require("../video/media-utility");
+const { mediaCut, getMiddleSecondsGap } = require("../video/media-utility");
 const { downloadAudio } = require("../freesound");
 
 module.exports = {
@@ -17,7 +17,7 @@ module.exports = {
       outputPath: `${properties.DIR_VIDEO_TEMP}/downloaded_video`,
     });
 
-    const lastSeconds = await getLastSecondsGap({
+    const midSeconds = await getMiddleSecondsGap({
       mediaInput: videoPath,
       secondsToCut: 5.5,
     });
@@ -25,8 +25,9 @@ module.exports = {
     const video_trimmed = await mediaCut({
       mediaInput: videoPath,
       mediaOutput: `${properties.DIR_VIDEO_TEMP}/output_trimmed.mp4`,
-      startTime: lastSeconds.init,
-      duration: lastSeconds.duration,
+      startTime: midSeconds.init,
+      duration: midSeconds.duration,
+      threadCount: 1,
     });
 
     const videoOutput = `${properties.DIR_VIDEO_TEMP}/output.mp4`;

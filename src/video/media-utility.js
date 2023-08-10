@@ -79,17 +79,19 @@ module.exports = {
     });
   },
 
-  mediaCut: async ({
+  mediaCut: (mediaCut = async ({
     mediaInput,
     mediaOutput,
     startTime = "00:00:00",
     duration,
+    threadCount = 2,
   }) => {
     return new Promise((resolve, reject) => {
       ffmpeg(mediaInput)
         .setStartTime(startTime)
         .setDuration(duration)
         .output(mediaOutput)
+        .addOption("-threads", threadCount)
         .on("end", () => {
           console.log("Cutting complete");
           resolve(mediaOutput);
@@ -100,7 +102,7 @@ module.exports = {
         })
         .run();
     });
-  },
+  }),
 
   videoCrop: async ({
     videoInput,

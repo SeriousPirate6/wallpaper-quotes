@@ -30,32 +30,36 @@ getPostId = async ({
   }
 };
 
-postMedia = async ({ access_token, creation_id }) => {
-  // TODO handle this function with promise
-  // in a way that it does not return something when catch statement is called.
-  try {
-    const post_media = await axios.post(
-      process.env.IG_GRAPH_URL + `/${process.env.IG_BUSINESS_ID}/media_publish`,
-      null, // data params not needed
-      {
-        params: {
-          creation_id,
-          access_token,
-        },
-      }
-    );
+postMedia = async ({ access_token, creation_id, cooldownSeconds = 2 }) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const post_media = await axios.post(
+        process.env.IG_GRAPH_URL +
+          `/${process.env.IG_BUSINESS_ID}/media_publish`,
+        null, // data params not needed
+        {
+          params: {
+            creation_id,
+            access_token,
+          },
+        }
+      );
 
-    return post_media.data;
-  } catch (err) {
-    if (err.response.data.error.code === 9007) {
-      setTimeout(async () => {
-        console.log("Media not ready yet, retrying in 1 second...");
-        await postMedia({ access_token, creation_id });
-      }, 1000);
-    } else {
-      console.log(err);
+      resolve(post_media.data);
+    } catch (err) {
+      if (err.response?.data?.error?.code === 9007) {
+        setTimeout(async () => {
+          console.log(
+            `Media not ready yet, retrying in ${cooldownSeconds} second(s)...`
+          );
+          resolve(await postMedia({ access_token, creation_id }));
+        }, cooldownSeconds * 1000);
+      } else {
+        console.log(err.response?.data);
+        reject(err.response?.data);
+      }
     }
-  }
+  });
 };
 
 checkPublishingLimits = async ({ access_token }) => {
