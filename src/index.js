@@ -276,7 +276,7 @@ app.patch("/pushEnvVarsToRender", async ({ res }) => {
 const { exec } = require("child_process");
 
 // Run the "sudo apt-get install cpulimit" command
-exec("sudo apt-get install cpulimit", (error, stdout, stderr) => {
+exec("sudo apt install cpulimit", (error, stdout, stderr) => {
   if (error) {
     console.error(`Error: ${error.message}`);
     return;
