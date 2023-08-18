@@ -1,10 +1,7 @@
 const fs = require("fs");
 require("dotenv").config();
 const axios = require("axios");
-const { stringToMap } = require("./utility/stringUtils");
-const { downloadMedia, handlingRedirects } = require("./utility/media");
-const { createReelPost } = require("./ig-graph/post");
-const { decryptAndGetToken } = require("./database/mdb-ig");
+const { stringToMap } = require("../utility/stringUtils");
 
 searchAudio = async ({ query, page_size = 150 }) => {
   const results = (

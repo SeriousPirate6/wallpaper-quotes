@@ -36,13 +36,13 @@ module.exports = {
       video: video
         ? new Video({
             id: video.id,
-            fps: vid_props.fps,
-            url: vid_props.link,
+            fps: vid_props?.fps,
+            url: vid_props?.link,
             keyword: media_description,
             user: new User({
-              id: video.user.id,
-              url: video.user.url,
-              name: video.user.name,
+              id: video.user?.id,
+              url: video.user?.url,
+              name: video.user?.name,
               platform: properties.PEXEL,
             }),
           })

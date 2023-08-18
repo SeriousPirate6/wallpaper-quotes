@@ -3,7 +3,7 @@ const properties = require("../constants/properties");
 const { downloadMedia } = require("../utility/media");
 const { addTextToVideo } = require("../video/addTextToVideo");
 const { mediaCut, getMiddleSecondsGap } = require("../video/media-utility");
-const { downloadAudio } = require("../freesound");
+const { downloadAudio } = require("../freesound/sounds");
 
 module.exports = {
   generateVideo: (generateVideo = async ({ db_quote }) => {
@@ -19,7 +19,7 @@ module.exports = {
 
     const midSeconds = await getMiddleSecondsGap({
       mediaInput: videoPath,
-      secondsToCut: 5.5,
+      secondsToCut: 8,
     });
 
     const video_trimmed = await mediaCut({

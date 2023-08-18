@@ -7,8 +7,10 @@ const rateLimit = require("express-rate-limit");
 const { getImageKeyWord } = require("./openai");
 const { getRandomQuote } = require("./zenquotes");
 const { deleteFile } = require("./utility/media");
+const { insertPost } = require("./database/mdb-ig");
 const properties = require("./constants/properties");
 const { sanitize } = require("./utility/stringUtils");
+const { getAccessToken } = require("./freesound/login");
 const { exportEnvVars } = require("./env/exportEnvVars");
 const { DriveService } = require("./g-drive/DriveService");
 const { getProperties } = require("./utility/getProperties");
@@ -31,9 +33,9 @@ const {
 const {
   encryptAndInsertToken,
   decryptAndGetToken,
-  insertPost,
-} = require("./database/mdb-ig");
+} = require("./database/mdb-tokens");
 const { driveGetFilesOrFolders } = require("./wrappers/driveGetFilesOrFolders");
+const { isLinuxOs } = require("./utility/getOS");
 
 const port = 3000;
 const app = express();
@@ -72,7 +74,25 @@ app.get("/getAuthentication", async (req, res) => {
   if (code) {
     const accessToken = await getLongLiveAccessToken(code);
     if (accessToken) {
-      const encryptedToken = await encryptAndInsertToken(accessToken);
+      const encryptedToken = await encryptAndInsertToken({
+        token: accessToken,
+        objectId: process.env.DB_IG_TOKEN_ID,
+      });
+      res.send({ accessToken: encryptedToken });
+    } else res.send("Unable to generate access token. Invalid code provided.");
+  } else res.status(400, "The param 'code' is mandatory");
+});
+
+app.get("/freesound", async (req, res) => {
+  const code = req.query.code;
+  if (code) {
+    const accessToken = await getAccessToken(code);
+    if (accessToken) {
+      const encryptedToken = await encryptAndInsertToken({
+        token: { accessToken },
+        objectId: process.env.DB_FREESOUND_TOKEN_ID,
+      });
+
       res.send({ accessToken: encryptedToken });
     } else res.send("Unable to generate access token. Invalid code provided.");
   } else res.status(400, "The param 'code' is mandatory");
@@ -81,60 +101,71 @@ app.get("/getAuthentication", async (req, res) => {
 app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
   const is_reel = req.query.type === properties.REEL ? true : false;
 
-  await checkDriveCreds();
-
-  try {
-    const quote = await getRandomQuote();
-    const media_description = sanitize(await getImageKeyWord(quote.q));
-
-    const media = !is_reel
-      ? await searchPhoto({
-          query: media_description,
-          per_page: 20,
-        })
-      : await searchVideo({ query: media_description });
-
-    db_quote = getProperties({
-      quote,
-      image: !is_reel ? media : null,
-      video: is_reel ? media : null,
-      media_description,
+  if (is_reel && isLinuxOs()) {
+    console.log(
+      "Since this function requires an high CPU usage, it can't be called from this deployment."
+    );
+    res.status(403).send({
+      status: "forbidden",
+      message:
+        "Since this function requires an high CPU usage, it can't be called from this deployment.",
     });
-    const quoteId = await insertQuote(db_quote);
+  } else {
+    await checkDriveCreds();
 
-    if (quoteId) {
-      db_quote.id = quoteId;
+    try {
+      const quote = await getRandomQuote();
+      const media_description = sanitize(await getImageKeyWord(quote.q));
 
       const media = !is_reel
-        ? await generateImage({ db_quote })
-        : await generateVideo({ db_quote });
+        ? await searchPhoto({
+            query: media_description,
+            per_page: 20,
+          })
+        : await searchVideo({ query: media_description });
 
-      const image_id = await quoteDriveUpload({
-        media,
-        db_quote,
-        type: is_reel ? properties.REEL : null,
+      db_quote = getProperties({
+        quote,
+        image: !is_reel ? media : null,
+        video: is_reel ? media : null,
+        media_description,
       });
+      const quoteId = await insertQuote(db_quote);
 
-      deleteFile(media);
-      res.send({
-        status: "success",
-        message: "Media generated and uploaded correctly.",
-        image: {
-          id: image_id,
-        },
-      });
-    } else {
+      if (quoteId) {
+        db_quote.id = quoteId;
+
+        const media = !is_reel
+          ? await generateImage({ db_quote })
+          : await generateVideo({ db_quote });
+
+        const image_id = await quoteDriveUpload({
+          media,
+          db_quote,
+          type: is_reel ? properties.REEL : null,
+        });
+
+        deleteFile(media);
+        res.send({
+          status: "success",
+          message: "Media generated and uploaded correctly.",
+          image: {
+            id: image_id,
+          },
+        });
+      } else {
+        res.status(500).send({
+          status: "failed",
+          message: "The media could not be uploaded.",
+        });
+      }
+    } catch (err) {
+      console.log(err);
       res.status(500).send({
         status: "failed",
-        message: "The media could not be uploaded.",
+        message: "The method is not available right now.",
       });
     }
-  } catch (err) {
-    console.log(err);
-    res.status(500).send({
-      status: "failed",
-      message: "The method is not available right now.",
-    });
   }
 });
 
@@ -271,23 +302,6 @@ app.patch("/pushEnvVarsToRender", async ({ res }) => {
       message: "Something goes wrong, could not perform the request.",
     });
   }
-});
-
-const { exec } = require("child_process");
-
-// Run the "sudo apt-get install cpulimit" command
-exec("sudo apt install cpulimit", (error, stdout, stderr) => {
-  if (error) {
-    console.error(`Error: ${error.message}`);
-    return;
-  }
-
-  if (stderr) {
-    console.error(`stderr: ${stderr}`);
-    return;
-  }
-
-  console.log(`stdout: ${stdout}`);
 });
 
 app.listen(port, () => {
