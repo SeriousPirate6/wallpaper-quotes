@@ -5,12 +5,12 @@ const { searchVideo } = require("./pexel");
 const { searchPhoto } = require("./unsplash");
 const rateLimit = require("express-rate-limit");
 const { getImageKeyWord } = require("./openai");
+const { isLinuxOs } = require("./utility/getOS");
 const { getRandomQuote } = require("./zenquotes");
 const { deleteFile } = require("./utility/media");
 const { insertPost } = require("./database/mdb-ig");
 const properties = require("./constants/properties");
 const { sanitize } = require("./utility/stringUtils");
-const { getAccessToken } = require("./freesound/login");
 const { exportEnvVars } = require("./env/exportEnvVars");
 const { DriveService } = require("./g-drive/DriveService");
 const { getProperties } = require("./utility/getProperties");
@@ -23,7 +23,13 @@ const { howMuchTillTheNextPost } = require("./ig-graph/getMedia");
 const { contructDriveUrl } = require("./utility/constructDriveUrl");
 const { pushEnvVarsToRender } = require("./env/pushEnvVarsToRender");
 const { insertQuote, getQuoteById } = require("./database/mdb-quotes");
+const {
+  getAccessToken,
+  refreshAccessToken,
+  fetchAccessToken,
+} = require("./freesound/login");
 const { getLongLiveAccessToken } = require("./ig-graph/login/getAccessToken");
+const { driveGetFilesOrFolders } = require("./wrappers/driveGetFilesOrFolders");
 const {
   createImagePost,
   getPostedLast24h,
@@ -34,8 +40,6 @@ const {
   encryptAndInsertToken,
   decryptAndGetToken,
 } = require("./database/mdb-tokens");
-const { driveGetFilesOrFolders } = require("./wrappers/driveGetFilesOrFolders");
-const { isLinuxOs } = require("./utility/getOS");
 
 const port = 3000;
 const app = express();
@@ -83,7 +87,7 @@ app.get("/getAuthentication", async (req, res) => {
   } else res.status(400, "The param 'code' is mandatory");
 });
 
-app.get("/freesound", async (req, res) => {
+app.post("/generateFreesoundAccessToken", async (req, res) => {
   const code = req.query.code;
   if (code) {
     const accessToken = await getAccessToken(code);
@@ -96,6 +100,37 @@ app.get("/freesound", async (req, res) => {
       res.send({ accessToken: encryptedToken });
     } else res.send("Unable to generate access token. Invalid code provided.");
   } else res.status(400, "The param 'code' is mandatory");
+});
+
+app.get("/refreshFreesoundAccessToken", async ({ res }) => {
+  try {
+    const refreshToken = await fetchAccessToken({ force_continue: true });
+    if (refreshToken.needRefreshing) {
+      const newToken = await refreshAccessToken({
+        refreshToken: refreshToken.refresh_token,
+      });
+      const encryptedToken = await encryptAndInsertToken({
+        token: { accessToken: newToken },
+        objectId: process.env.DB_FREESOUND_TOKEN_ID,
+      });
+      res.send({
+        status: "success",
+        message: "Freesound access token refreshed corectly.",
+        encryptedToken,
+      });
+    } else {
+      res.status(304).send({
+        status: "not modified",
+        message: "No need for refreshing, the saved token is still valid.",
+      });
+    }
+  } catch {
+    res.status(401).send({
+      status: "failed",
+      message:
+        "Unable to refresh access token. The refresh token is likely to be expired.",
+    });
+  }
 });
 
 app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
@@ -111,60 +146,69 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
         "Since this function requires an high CPU usage, it can't be called from this deployment.",
     });
   } else {
-    await checkDriveCreds();
-
-    try {
-      const quote = await getRandomQuote();
-      const media_description = sanitize(await getImageKeyWord(quote.q));
-
-      const media = !is_reel
-        ? await searchPhoto({
-            query: media_description,
-            per_page: 20,
-          })
-        : await searchVideo({ query: media_description });
-
-      db_quote = getProperties({
-        quote,
-        image: !is_reel ? media : null,
-        video: is_reel ? media : null,
-        media_description,
+    const freesoundAccessToken = is_reel ? await fetchAccessToken() : undefined;
+    if (is_reel && !freesoundAccessToken) {
+      res.status(403).send({
+        status: "forbidden",
+        message: "Missing freesound access token.",
       });
-      const quoteId = await insertQuote(db_quote);
+    } else {
+      await checkDriveCreds();
 
-      if (quoteId) {
-        db_quote.id = quoteId;
+      try {
+        const quote = await getRandomQuote();
+        const media_description = sanitize(await getImageKeyWord(quote.q));
 
         const media = !is_reel
-          ? await generateImage({ db_quote })
-          : await generateVideo({ db_quote });
+          ? await searchPhoto({
+              query: media_description,
+              per_page: 20,
+            })
+          : await searchVideo({ query: media_description });
 
-        const image_id = await quoteDriveUpload({
-          media,
-          db_quote,
-          type: is_reel ? properties.REEL : null,
+        db_quote = getProperties({
+          quote,
+          image: !is_reel ? media : null,
+          video: is_reel ? media : null,
+          media_description,
         });
+        const quoteId = await insertQuote(db_quote);
 
-        deleteFile(media);
-        res.send({
-          status: "success",
-          message: "Media generated and uploaded correctly.",
-          image: {
-            id: image_id,
-          },
-        });
-      } else {
+        if (quoteId) {
+          db_quote.id = quoteId;
+
+          const media = !is_reel
+            ? await generateImage({ db_quote })
+            : await generateVideo({ db_quote });
+
+          const image_id = await quoteDriveUpload({
+            media,
+            db_quote,
+            type: is_reel ? properties.REEL : null,
+          });
+
+          deleteFile(media);
+          res.send({
+            status: "success",
+            message: "Media generated and uploaded correctly.",
+            image: {
+              id: image_id,
+            },
+          });
+        } else {
+          res.status(500).send({
+            status: "failed",
+            message:
+              "The quote generated has already been used in another media file.",
+          });
+        }
+      } catch (err) {
+        console.log(err);
         res.status(500).send({
           status: "failed",
-          message: "The media could not be uploaded.",
+          message: "The method is not available right now.",
         });
       }
-    } catch (err) {
-      console.log(err);
-      res.status(500).send({
-        status: "failed",
-        message: "The method is not available right now.",
-      });
     }
   }
 });
@@ -172,7 +216,9 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
 app.get("/getQuoteAndPostIt", defaultRateLimiter, async (req, res) => {
   const is_reel = req.query.type === properties.REEL ? true : false;
 
-  const access_token = (await decryptAndGetToken()).token;
+  const access_token = (
+    await decryptAndGetToken({ objectId: process.env.DB_IG_TOKEN_ID })
+  ).token;
   const posts_number = await getPostedLast24h({ access_token });
 
   if (posts_number > properties.MAX_POSTS_PER_DAY) {

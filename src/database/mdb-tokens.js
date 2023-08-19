@@ -28,7 +28,11 @@ module.exports = {
     const db = await getDB(client, process.env.DB_NAME);
 
     const expiration_date = new Date();
-    expiration_date.setDate(expiration_date.getDate() + 1);
+    expiration_date.setDate(
+      objectId === process.env.DB_IG_TOKEN_ID
+        ? expiration_date.getDate() + 59
+        : expiration_date.getDate() + 1
+    );
 
     const encrypted_token = encrypt(
       token,

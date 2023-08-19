@@ -2,6 +2,7 @@ const fs = require("fs");
 require("dotenv").config();
 const axios = require("axios");
 const { stringToMap } = require("../utility/stringUtils");
+const { fetchAccessToken } = require("./login");
 
 searchAudio = async ({ query, page_size = 150 }) => {
   const results = (
@@ -41,6 +42,7 @@ module.exports = {
 
   downloadAudio: (downloadAudio = async ({ query, pathNoName }) => {
     const url = await getAudioLink({ query });
+    const access_token = (await fetchAccessToken())?.access_token;
 
     return new Promise((resolve, reject) => {
       axios({
@@ -48,7 +50,7 @@ module.exports = {
         url,
         responseType: "arraybuffer",
         headers: {
-          Authorization: `Bearer ${process.env.FREESOUND_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${access_token}`,
         },
       })
         .then((response) => {
