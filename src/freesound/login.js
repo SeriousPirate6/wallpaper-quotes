@@ -11,10 +11,10 @@ getOrUpdateAccessToken = async ({ code, refreshToken }) => {
 
   if (code) {
     bodyFormData.append("grant_type", "authorization_code");
-    bodyFormData.append("code", code.code); // need only for the string value not the entire JSON obj.
+    bodyFormData.append("code", code);
   } else if (refreshToken) {
     bodyFormData.append("grant_type", "refresh_token");
-    bodyFormData.append("refresh_token", refreshToken.refreshToken);
+    bodyFormData.append("refresh_token", refreshToken);
   }
 
   const response = (
