@@ -87,7 +87,7 @@ app.get("/getAuthentication", async (req, res) => {
   } else res.status(400, "The param 'code' is mandatory");
 });
 
-app.post("/generateFreesoundAccessToken", async (req, res) => {
+app.get("/generateFreesoundAccessToken", async (req, res) => {
   const code = req.query.code;
   if (code) {
     const accessToken = await getAccessToken(code);
