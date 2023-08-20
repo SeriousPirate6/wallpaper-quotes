@@ -18,7 +18,7 @@ module.exports = Object.freeze({
   DIR_VIDEO_TEMP: "test",
 
   // IG
-  MAX_POSTS_PER_DAY: 10,
+  MAX_POSTS_PER_DAY: 20,
 
   // JIMP
   TEXT_WIDTH: 400,

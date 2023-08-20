@@ -43,7 +43,7 @@ module.exports = {
     return await getOrUpdateAccessToken({ refreshToken });
   },
 
-  fetchAccessToken: async ({ force_continue = false }) => {
+  fetchAccessToken: async ({ force_continue } = {}) => {
     const accessToken = await decryptAndGetToken({
       objectId: process.env.DB_FREESOUND_TOKEN_ID,
     });

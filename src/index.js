@@ -102,36 +102,48 @@ app.get("/generateFreesoundAccessToken", async (req, res) => {
   } else res.status(400, "The param 'code' is mandatory");
 });
 
-app.get("/refreshFreesoundAccessToken", async ({ res }) => {
-  try {
-    const refreshToken = await fetchAccessToken({ force_continue: true });
-    if (refreshToken.needRefreshing) {
-      const newToken = await refreshAccessToken({
-        refreshToken: refreshToken.refresh_token,
-      });
-      const encryptedToken = await encryptAndInsertToken({
-        token: { accessToken: newToken },
-        objectId: process.env.DB_FREESOUND_TOKEN_ID,
-      });
-      res.send({
-        status: "success",
-        message: "Freesound access token refreshed corectly.",
-        encryptedToken,
-      });
-    } else {
-      res.status(304).send({
-        status: "not modified",
-        message: "No need for refreshing, the saved token is still valid.",
+app.get(
+  "/refreshFreesoundAccessToken",
+  rateLimit({
+    windowMs: 40 * 1000,
+    max: 1,
+    message: {
+      status: "not available",
+      message: "Too many requests, please try again later.",
+    },
+    skip: (req) => false,
+  }),
+  async ({ res }) => {
+    try {
+      const refreshToken = await fetchAccessToken({ force_continue: true });
+      if (refreshToken.needRefreshing) {
+        const newToken = await refreshAccessToken({
+          refreshToken: refreshToken.refresh_token,
+        });
+        const encryptedToken = await encryptAndInsertToken({
+          token: { accessToken: newToken },
+          objectId: process.env.DB_FREESOUND_TOKEN_ID,
+        });
+        res.send({
+          status: "success",
+          message: "Freesound access token refreshed corectly.",
+          encryptedToken,
+        });
+      } else {
+        res.status(304).send({
+          status: "not modified",
+          message: "No need for refreshing, the saved token is still valid.",
+        });
+      }
+    } catch {
+      res.status(401).send({
+        status: "failed",
+        message:
+          "Unable to refresh access token. The refresh token is likely to be expired.",
       });
     }
-  } catch {
-    res.status(401).send({
-      status: "failed",
-      message:
-        "Unable to refresh access token. The refresh token is likely to be expired.",
-    });
   }
-});
+);
 
 app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
   const is_reel = req.query.type === properties.REEL ? true : false;

@@ -7,6 +7,6 @@ module.exports = {
       return `${process.env.ZENQUOTE_IMAGES}\\${authorName
         .toLowerCase()
         .replace(/[\s.]/g, (match) => (match === " " ? "-" : "_"))}.jpg`;
-    } else return properties.UNKNOWN_AUTHOR;
+    } else return properties.UNKNOWN_AUTHOR_IMAGE;
   },
 };
