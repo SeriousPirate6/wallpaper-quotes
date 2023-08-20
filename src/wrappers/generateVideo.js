@@ -22,13 +22,13 @@ module.exports = {
       secondsToCut: 8,
     });
 
-    const video_trimmed = await mediaCut({
-      mediaInput: videoPath,
-      mediaOutput: `${properties.DIR_VIDEO_TEMP}/output_trimmed.mp4`,
-      startTime: midSeconds.init,
-      duration: midSeconds.duration,
-      threadCount: 1,
-    });
+    // const video_trimmed = await mediaCut({
+    //   mediaInput: videoPath,
+    //   mediaOutput: `${properties.DIR_VIDEO_TEMP}/output_trimmed.mp4`,
+    //   startTime: midSeconds.init,
+    //   duration: midSeconds.duration,
+    //   threadCount: 1,
+    // });
 
     const videoOutput = `${properties.DIR_VIDEO_TEMP}/output.mp4`;
 
@@ -40,7 +40,7 @@ module.exports = {
 
     const videoEdited = await addTextToVideo({
       quote: db_quote,
-      videoInput: video_trimmed,
+      videoInput: videoPath,
       videoOutput,
       audioInput,
       audioOutput,

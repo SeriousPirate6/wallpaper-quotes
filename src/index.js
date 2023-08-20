@@ -169,7 +169,8 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
 
       try {
         const quote = await getRandomQuote();
-        const media_description = sanitize(await getImageKeyWord(quote.q));
+        // const media_description = sanitize(await getImageKeyWord(quote.q));
+        const media_description = "tiger";
 
         const media = !is_reel
           ? await searchPhoto({
@@ -184,10 +185,11 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
           video: is_reel ? media : null,
           media_description,
         });
-        const quoteId = await insertQuote(db_quote);
+        // const quoteId = await insertQuote(db_quote);
 
-        if (quoteId) {
-          db_quote.id = quoteId;
+        // if (quoteId) {
+        if (true) {
+          db_quote.id = 1;
 
           const media = !is_reel
             ? await generateImage({ db_quote })

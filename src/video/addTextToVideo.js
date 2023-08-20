@@ -35,13 +35,13 @@ module.exports = {
         secondsToCut: duration,
       });
 
-      const audio_cutted = await mediaCut({
-        mediaInput: audioInput,
-        mediaOutput: audioOutput,
-        startTime: audio_timestamps.init,
-        duration: audio_timestamps.duration,
-        threadCount: 2,
-      });
+      // const audio_cutted = await mediaCut({
+      //   mediaInput: audioInput,
+      //   mediaOutput: audioOutput,
+      //   startTime: audio_timestamps.init,
+      //   duration: audio_timestamps.duration,
+      //   threadCount: 2,
+      // });
 
       const video_dimensions = await videoDimensions({ videoInput });
       if (
@@ -86,7 +86,7 @@ module.exports = {
       await Promise.all(allFramesReady);
 
       await exec(
-        `ffmpeg -r ${video_fps} -i temp/edited-frames/%d.png -i ${audio_cutted} -c:v libx265 -preset medium -x265-params "keyint=30:min-keyint=30:scenecut=0:open-gop=0:rc-lookahead=30:subme=0:crf=23:psy-rd=1.0:rdoq-level=2:qcomp=0.70" -r 30 -c:a aac -b:a 128k -movflags faststart -max_muxing_queue_size 9999 -vf "fps=${video_fps},format=yuv420p" -y ${videoOutput}`
+        `ffmpeg -r ${video_fps} -i temp/edited-frames/%d.png -i ${audioInput} -c:v libx265 -preset medium -x265-params "keyint=30:min-keyint=30:scenecut=0:open-gop=0:rc-lookahead=30:subme=0:crf=23:psy-rd=1.0:rdoq-level=2:qcomp=0.70" -r 30 -c:a aac -b:a 128k -movflags faststart -max_muxing_queue_size 9999 -vf "fps=${video_fps},format=yuv420p" -y ${videoOutput}`
       );
       console.log("Cleaning up");
       deleteFolderRecursively("temp");
