@@ -148,81 +148,70 @@ app.get(
 app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
   const is_reel = req.query.type === properties.REEL ? true : false;
 
-  if (is_reel && isLinuxOs()) {
-    console.log(
-      "Since this function requires an high CPU usage, it can't be called from this deployment."
-    );
+  const freesoundAccessToken = is_reel ? await fetchAccessToken() : undefined;
+  if (is_reel && !freesoundAccessToken) {
     res.status(403).send({
       status: "forbidden",
-      message:
-        "Since this function requires an high CPU usage, it can't be called from this deployment.",
+      message: "Missing freesound access token.",
     });
   } else {
-    const freesoundAccessToken = is_reel ? await fetchAccessToken() : undefined;
-    if (is_reel && !freesoundAccessToken) {
-      res.status(403).send({
-        status: "forbidden",
-        message: "Missing freesound access token.",
-      });
-    } else {
-      await checkDriveCreds();
+    await checkDriveCreds();
 
-      try {
-        const quote = await getRandomQuote();
-        // const media_description = sanitize(await getImageKeyWord(quote.q));
-        const media_description = "tiger";
+    try {
+      const quote = await getRandomQuote();
+      // const media_description = sanitize(await getImageKeyWord(quote.q));
+      const media_description = "tiger";
+
+      const media = !is_reel
+        ? await searchPhoto({
+            query: media_description,
+            per_page: 20,
+          })
+        : await searchVideo({ query: media_description });
+
+      db_quote = getProperties({
+        quote,
+        image: !is_reel ? media : null,
+        video: is_reel ? media : null,
+        media_description,
+      });
+      // const quoteId = await insertQuote(db_quote);
+
+      // if (quoteId) {
+      if (true) {
+        db_quote.id = 1;
 
         const media = !is_reel
-          ? await searchPhoto({
-              query: media_description,
-              per_page: 20,
-            })
-          : await searchVideo({ query: media_description });
+          ? await generateImage({ db_quote })
+          : await generateVideo({ db_quote });
 
-        db_quote = getProperties({
-          quote,
-          image: !is_reel ? media : null,
-          video: is_reel ? media : null,
-          media_description,
+        const image_id = await quoteDriveUpload({
+          media,
+          db_quote,
+          type: is_reel ? properties.REEL : null,
         });
-        // const quoteId = await insertQuote(db_quote);
 
-        // if (quoteId) {
-        if (true) {
-          db_quote.id = 1;
-
-          const media = !is_reel
-            ? await generateImage({ db_quote })
-            : await generateVideo({ db_quote });
-
-          const image_id = await quoteDriveUpload({
-            media,
-            db_quote,
-            type: is_reel ? properties.REEL : null,
-          });
-
-          deleteFile(media);
-          res.send({
-            status: "success",
-            message: "Media generated and uploaded correctly.",
-            image: {
-              id: image_id,
-            },
-          });
-        } else {
-          res.status(500).send({
-            status: "failed",
-            message:
-              "The quote generated has already been used in another media file.",
-          });
-        }
-      } catch (err) {
-        console.log(err);
+        deleteFile(media);
+        res.send({
+          status: "success",
+          message: "Media generated and uploaded correctly.",
+          image: {
+            id: image_id,
+          },
+        });
+      } else {
         res.status(500).send({
           status: "failed",
-          message: "The method is not available right now.",
+          message:
+            "The quote generated has already been used in another media file.",
         });
       }
+    } catch (err) {
+      console.log(err);
+      res.status(500).send({
+        status: "failed",
+        message: "The method is not available right now.",
+      });
     }
   }
 });
