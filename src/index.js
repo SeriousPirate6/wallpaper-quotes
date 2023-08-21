@@ -7,7 +7,7 @@ const rateLimit = require("express-rate-limit");
 const { getImageKeyWord } = require("./openai");
 const { isLinuxOs } = require("./utility/getOS");
 const { getRandomQuote } = require("./zenquotes");
-const { deleteFile } = require("./utility/media");
+const { deleteFile, downloadMedia } = require("./utility/media");
 const { insertPost } = require("./database/mdb-ig");
 const properties = require("./constants/properties");
 const { sanitize } = require("./utility/stringUtils");
@@ -41,7 +41,7 @@ const {
   decryptAndGetToken,
 } = require("./database/mdb-tokens");
 const { downloadAudio } = require("./freesound/sounds");
-const { audioToMp3 } = require("./convert-audio/audioConverter");
+const { audioToMp3, lightenVideo } = require("./convert-audio/audioConverter");
 const { getMiddleSecondsGap, mediaCut } = require("./video/media-utility");
 
 const port = 3000;
@@ -379,6 +379,47 @@ app.get("/testAudioCut", async ({ res }) => {
       mediaOutput: "trimmed.mp3",
       startTime: audio_timestamps.init,
       duration: audio_timestamps.duration,
+      threadCount: 2,
+    });
+
+    res.send("you, did it, son");
+  } catch (err) {
+    console.log(err);
+    res.send("not this time, bro");
+  }
+});
+
+app.get("/testVideoCut", async ({ res }) => {
+  try {
+    const outputFilePath = "light_video.mp4";
+
+    const videoObj = await searchVideo({ query: "zebra" });
+    const mediaUrl = videoObj.video_files.find(
+      (video) => video.width === 1080
+    ).link;
+
+    console.log(mediaUrl);
+
+    const videoPath = await downloadMedia({
+      mediaUrl,
+      outputPath: `downloaded_video`,
+    });
+
+    const midSeconds = await getMiddleSecondsGap({
+      mediaInput: videoPath,
+      secondsToCut: 8,
+    });
+
+    const light_video = await lightenVideo({
+      inputFilePath: videoPath,
+      outputFilePath,
+    });
+
+    const video_cutted = await mediaCut({
+      mediaInput: light_video,
+      mediaOutput: "trimmed-video.mp4",
+      startTime: midSeconds.init,
+      duration: 10,
       threadCount: 2,
     });
 
