@@ -4,7 +4,7 @@ const axios = require("axios");
 const { stringToMap } = require("../utility/stringUtils");
 const { fetchAccessToken } = require("./login");
 
-searchAudio = async ({ query, page_size = 150 }) => {
+searchAudio = async ({ query, page_size = 1 }) => {
   const results = (
     await axios.get(`${process.env.FREESOUND_API_URL}/search/text`, {
       params: {
@@ -22,24 +22,24 @@ searchAudio = async ({ query, page_size = 150 }) => {
   return random_sound;
 };
 
+getAudioLink = async ({ query }) => {
+  const audio = await searchAudio({ query });
+
+  const response = (
+    await axios.get(`${process.env.FREESOUND_API_URL}/sounds/${audio.id}`, {
+      params: {
+        token: process.env.FREESOUND_API_KEY,
+      },
+    })
+  ).data;
+
+  const url = response.download;
+
+  console.log(url);
+  return url;
+};
+
 module.exports = {
-  getAudioLink: (getAudioLink = async ({ query }) => {
-    const audio = await searchAudio({ query });
-
-    const response = (
-      await axios.get(`${process.env.FREESOUND_API_URL}/sounds/${audio.id}`, {
-        params: {
-          token: process.env.FREESOUND_API_KEY,
-        },
-      })
-    ).data;
-
-    const url = response.download;
-
-    console.log(url);
-    return url;
-  }),
-
   downloadAudio: (downloadAudio = async ({ query, pathNoName }) => {
     const url = await getAudioLink({ query });
     const access_token = (await fetchAccessToken())?.access_token;

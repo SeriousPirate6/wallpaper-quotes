@@ -40,6 +40,9 @@ const {
   encryptAndInsertToken,
   decryptAndGetToken,
 } = require("./database/mdb-tokens");
+const { downloadAudio } = require("./freesound/sounds");
+const { audioToMp3 } = require("./convert-audio/audioConverter");
+const { getMiddleSecondsGap, mediaCut } = require("./video/media-utility");
 
 const port = 3000;
 const app = express();
@@ -350,6 +353,39 @@ app.patch("/pushEnvVarsToRender", async ({ res }) => {
       status: "failed",
       message: "Something goes wrong, could not perform the request.",
     });
+  }
+});
+
+app.get("/testAudioCut", async ({ res }) => {
+  try {
+    console.log("Current working directory:", process.cwd());
+    const outputFilePath = "demo.mp3";
+
+    const inputFilePath = await downloadAudio({
+      pathNoName: ".",
+      query:
+        "Bach - Air from Orchestral Suite No. 3 - BWV 1068 - Movement 2 - Arr. for Music Box.wav",
+    });
+
+    const convertedFile = await audioToMp3({ inputFilePath, outputFilePath });
+
+    const audio_timestamps = await getMiddleSecondsGap({
+      mediaInput: convertedFile,
+      secondsToCut: 5,
+    });
+
+    const audio_cutted = await mediaCut({
+      mediaInput: convertedFile,
+      mediaOutput: "trimmed.mp3",
+      startTime: audio_timestamps.init,
+      duration: audio_timestamps.duration,
+      threadCount: 2,
+    });
+
+    res.send("you, did it, son");
+  } catch (err) {
+    console.log(err);
+    res.send("not this time, bro");
   }
 });
 
