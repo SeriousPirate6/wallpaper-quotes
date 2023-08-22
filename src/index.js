@@ -7,7 +7,11 @@ const rateLimit = require("express-rate-limit");
 const { getImageKeyWord } = require("./openai");
 const { isLinuxOs } = require("./utility/getOS");
 const { getRandomQuote } = require("./zenquotes");
-const { deleteFile, downloadMedia } = require("./utility/media");
+const {
+  deleteFile,
+  downloadMedia,
+  deleteFolderRecursively,
+} = require("./utility/media");
 const { insertPost } = require("./database/mdb-ig");
 const properties = require("./constants/properties");
 const { sanitize } = require("./utility/stringUtils");
@@ -22,7 +26,11 @@ const { requireAuth } = require("./ig-graph/login/getAuthWindow");
 const { howMuchTillTheNextPost } = require("./ig-graph/getMedia");
 const { contructDriveUrl } = require("./utility/constructDriveUrl");
 const { pushEnvVarsToRender } = require("./env/pushEnvVarsToRender");
-const { insertQuote, getQuoteById } = require("./database/mdb-quotes");
+const {
+  insertQuote,
+  getQuoteById,
+  deleteQuote,
+} = require("./database/mdb-quotes");
 const {
   getAccessToken,
   refreshAccessToken,
@@ -149,6 +157,7 @@ app.get(
 );
 
 app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
+  const debug = false;
   const is_reel = req.query.type === properties.REEL ? true : false;
 
   const freesoundAccessToken = is_reel ? await fetchAccessToken() : undefined;
@@ -162,7 +171,9 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
 
     try {
       const quote = await getRandomQuote();
-      const media_description = sanitize(await getImageKeyWord(quote.q));
+      const media_description = debug
+        ? "nature"
+        : sanitize(await getImageKeyWord(quote.q));
 
       const media = !is_reel
         ? await searchPhoto({
@@ -177,38 +188,48 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
         video: is_reel ? media : null,
         media_description,
       });
-      const quoteId = await insertQuote(db_quote);
+      const quoteId = debug ? 1 : await insertQuote(db_quote);
 
-      if (quoteId) {
-        db_quote.id = 1;
+      try {
+        if (quoteId) {
+          db_quote.id = 1;
 
-        const media = !is_reel
-          ? await generateImage({ db_quote })
-          : await generateVideo({ db_quote });
+          const media = !is_reel
+            ? await generateImage({ db_quote })
+            : await generateVideo({ db_quote });
 
-        const image_id = await quoteDriveUpload({
-          media,
-          db_quote,
-          type: is_reel ? properties.REEL : null,
-        });
+          const image_id = await quoteDriveUpload({
+            media,
+            db_quote,
+            type: is_reel ? properties.REEL : null,
+          });
 
-        deleteFile(media);
-        res.send({
-          status: "success",
-          message: "Media generated and uploaded correctly.",
-          image: {
-            id: image_id,
-          },
-        });
-      } else {
+          deleteFolderRecursively(properties.DIR_VIDEO_TEST);
+          res.send({
+            status: "success",
+            message: "Media generated and uploaded correctly.",
+            image: {
+              id: image_id,
+            },
+          });
+        } else {
+          res.status(500).send({
+            status: "failed",
+            message:
+              "The quote generated has already been used in another media file.",
+          });
+        }
+      } catch (err) {
+        console.log(err);
+        if (!debug) await deleteQuote({ quoteId });
         res.status(500).send({
           status: "failed",
-          message:
-            "The quote generated has already been used in another media file.",
+          message: "The method is not available right now.",
         });
       }
     } catch (err) {
       console.log(err);
+      if (!debug) await deleteQuote({ quoteId });
       res.status(500).send({
         status: "failed",
         message: "The method is not available right now.",

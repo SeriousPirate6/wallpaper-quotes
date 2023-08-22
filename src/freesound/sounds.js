@@ -4,7 +4,7 @@ const axios = require("axios");
 const { stringToMap } = require("../utility/stringUtils");
 const { fetchAccessToken } = require("./login");
 
-searchAudio = async ({ query, page_size = 1 }) => {
+searchAudio = async ({ query, page_size = 150 }) => {
   const results = (
     await axios.get(`${process.env.FREESOUND_API_URL}/search/text`, {
       params: {

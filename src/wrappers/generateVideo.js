@@ -1,46 +1,96 @@
 const fs = require("fs");
+const util = require("util");
 const properties = require("../constants/properties");
 const { downloadMedia } = require("../utility/media");
-const { addTextToVideo } = require("../video/addTextToVideo");
-const { mediaCut, getMiddleSecondsGap } = require("../video/media-utility");
 const { downloadAudio } = require("../freesound/sounds");
+const exec = util.promisify(require("child_process").exec);
+const { addTextToVideo } = require("../video/addTextToVideo");
+const {
+  getMiddleSecondsGap,
+  videoDimensions,
+  getVideoFramesPerSecond,
+  videoCrop,
+} = require("../video/media-utility");
+const {
+  halveFrameRate,
+  extractFramesFromDuration,
+} = require("../video/framesManipulations");
 
 module.exports = {
-  generateVideo: (generateVideo = async ({ db_quote }) => {
-    if (!fs.existsSync(properties.DIR_VIDEO_TEMP)) {
-      console.log(`Creating folder: '${properties.DIR_VIDEO_TEMP}'`);
-      fs.mkdirSync(properties.DIR_VIDEO_TEMP);
+  generateVideo: (generateVideo = async ({
+    db_quote,
+    targetWidth = 1080,
+    targetHeight = 1920,
+  }) => {
+    const tempFolder = "temp";
+    const rawFramesFolder = tempFolder + "/raw-frames";
+
+    if (!fs.existsSync(properties.DIR_VIDEO_TEST)) {
+      console.log(`Creating folder: '${properties.DIR_VIDEO_TEST}'`);
+      fs.mkdirSync(properties.DIR_VIDEO_TEST);
+    }
+    if (!fs.existsSync(tempFolder)) {
+      console.log(`Creating folder: "${tempFolder}"`);
+      fs.mkdirSync(tempFolder);
+    }
+    if (!fs.existsSync(rawFramesFolder)) {
+      console.log(`Creating folder: "${rawFramesFolder}"`);
+      fs.mkdirSync(rawFramesFolder);
     }
 
-    const videoPath = await downloadMedia({
+    let videoInput = await downloadMedia({
       mediaUrl: db_quote.video.url,
-      outputPath: `${properties.DIR_VIDEO_TEMP}/downloaded_video`,
+      outputPath: `${properties.DIR_VIDEO_TEST}/downloaded_video`,
     });
-
-    const midSeconds = await getMiddleSecondsGap({
-      mediaInput: videoPath,
-      secondsToCut: 8,
-    });
-
-    // const video_trimmed = await mediaCut({
-    //   mediaInput: videoPath,
-    //   mediaOutput: `${properties.DIR_VIDEO_TEMP}/output_trimmed.mp4`,
-    //   startTime: midSeconds.init,
-    //   duration: midSeconds.duration,
-    //   threadCount: 1,
-    // });
-
-    const videoOutput = `${properties.DIR_VIDEO_TEMP}/output.mp4`;
 
     const audioInput = await downloadAudio({
-      query: "calming sounds",
-      pathNoName: properties.DIR_VIDEO_TEMP,
+      query: "calming music",
+      pathNoName: properties.DIR_VIDEO_TEST,
     });
-    const audioOutput = `${properties.DIR_VIDEO_TEMP}/audio_trimmed.wav`;
+
+    const video_dimensions = await videoDimensions({ videoInput });
+    if (
+      video_dimensions.width > targetWidth ||
+      video_dimensions.height > targetHeight
+    ) {
+      videoInput = await videoCrop({ videoInput });
+    }
+
+    const midSeconds = await getMiddleSecondsGap({
+      mediaInput: videoInput,
+      secondsToCut: 8,
+      timeFormatted: false,
+    });
+
+    const framerate = await getVideoFramesPerSecond(videoInput);
+    const videoOutput = `${properties.DIR_VIDEO_TEST}/output.mp4`;
+    const audioOutput = `${properties.DIR_VIDEO_TEST}/audio_trimmed.wav`;
+
+    console.log("Decoding");
+    await exec(`ffmpeg -i ${videoInput} -y ${rawFramesFolder}/%d.png`);
+
+    frames = [];
+    // reading frames in folder an sorting them in numeric asc order
+    fs.readdirSync(rawFramesFolder).forEach((file) => {
+      frame_number = Number(file.replace(/\.[^/.]+$/, ""));
+      frames[frame_number] = `${rawFramesFolder}/${file}`;
+    });
+    const remainingFramesList = halveFrameRate({
+      frames,
+      framerate,
+    });
+    const frameList = extractFramesFromDuration({
+      frames: remainingFramesList.frames,
+      framerate: remainingFramesList.framerate,
+      start: midSeconds.init,
+      duration: midSeconds.duration,
+    });
 
     const videoEdited = await addTextToVideo({
       quote: db_quote,
-      videoInput: videoPath,
+      frameList,
+      framerate,
+      videoInput,
       videoOutput,
       audioInput,
       audioOutput,

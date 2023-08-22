@@ -21,7 +21,7 @@ module.exports = {
             gravity: "southeast",
           },
           {
-            input: `${properties.DIR_VIDEO_TEMP}/${authorName.replace(
+            input: `${properties.DIR_VIDEO_TEST}/${authorName.replace(
               " ",
               "_"
             )}.png`,
@@ -80,7 +80,7 @@ module.exports = {
   maskAuthorImage: (maskAuthorImage = async (authorName, outputPath) => {
     const image = await downloadMedia({
       mediaUrl: getAuthorImage(authorName),
-      outputPath: `${properties.DIR_VIDEO_TEMP}/${authorName}`,
+      outputPath: `${properties.DIR_VIDEO_TEST}/${authorName}`,
     });
     return new Promise((resolve, reject) => {
       sharp(image)

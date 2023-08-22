@@ -5,7 +5,13 @@ const { timeFormat } = require("../utility/timeFormat");
 const properties = require("../constants/properties");
 const exec = util.promisify(require("child_process").exec);
 
-getSecondsGap = ({ mediaLength, secondsToCut, timeInit, duration }) => {
+getSecondsGap = ({
+  mediaLength,
+  secondsToCut,
+  timeInit,
+  duration,
+  timeFormatted = true,
+}) => {
   if (isNaN(secondsToCut)) {
     console.log(`Param "seconds" must be of numeric type.`);
     return;
@@ -13,12 +19,16 @@ getSecondsGap = ({ mediaLength, secondsToCut, timeInit, duration }) => {
 
   if (mediaLength < secondsToCut)
     return {
-      init: "00:00:00.000",
-      duration: timeFormat({ timeInSeconds: mediaLength }),
+      init: timeFormatted ? "00:00:00.000" : 0,
+      duration: timeFormatted
+        ? timeFormat({ timeInSeconds: mediaLength })
+        : duration,
     };
   return {
-    init: timeFormat({ timeInSeconds: timeInit }),
-    duration: timeFormat({ timeInSeconds: duration }),
+    init: timeFormatted ? timeFormat({ timeInSeconds: timeInit }) : timeInit,
+    duration: timeFormatted
+      ? timeFormat({ timeInSeconds: duration })
+      : duration,
   };
 };
 
@@ -57,7 +67,11 @@ module.exports = {
     });
   },
 
-  getMiddleSecondsGap: async ({ mediaInput, secondsToCut }) => {
+  getMiddleSecondsGap: async ({
+    mediaInput,
+    secondsToCut,
+    timeFormatted = true,
+  }) => {
     const mediaLength = await getMediaLength(mediaInput);
     const starting_time = Number(((mediaLength - secondsToCut) / 2).toFixed(3));
 
@@ -66,6 +80,7 @@ module.exports = {
       secondsToCut,
       timeInit: starting_time,
       duration: secondsToCut,
+      timeFormatted,
     });
   },
 
@@ -106,7 +121,7 @@ module.exports = {
 
   videoCrop: async ({
     videoInput,
-    videoOutput = `${properties.DIR_VIDEO_TEMP}/output-cropped.mp4`,
+    videoOutput = `${properties.DIR_VIDEO_TEST}/output-cropped.mp4`,
     cropWidth = 1080,
     cropHeight = 1920,
     cropX = 0,

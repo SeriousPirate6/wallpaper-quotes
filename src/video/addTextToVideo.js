@@ -21,15 +21,27 @@ const debug = false;
 module.exports = {
   addTextToVideo: async ({
     quote,
+    frameList,
+    framerate,
     videoInput,
     videoOutput,
     audioInput,
     audioOutput,
-    targetWidth = 1080,
-    targetHeight = 1920,
   }) => {
     try {
-      const video_fps = await getVideoFramesPerSecond(videoInput);
+      console.log("Initializing temporary files");
+      const rawFramesFolder = "temp/raw-frames";
+      const editedFramesFolder = "temp/edited-frames";
+
+      if (!fs.existsSync(rawFramesFolder)) {
+        console.log(`Creating folder: "${rawFramesFolder}"`);
+        fs.mkdirSync(rawFramesFolder);
+      }
+      if (!fs.existsSync(editedFramesFolder)) {
+        console.log(`Creating folder: "${editedFramesFolder}"`);
+        fs.mkdirSync(editedFramesFolder);
+      }
+
       const duration = await getMediaLength(videoInput);
 
       const audio_timestamps = await getMiddleSecondsGap({
@@ -48,49 +60,24 @@ module.exports = {
         threadCount: 2,
       });
 
-      const video_dimensions = await videoDimensions({ videoInput });
-      if (
-        video_dimensions.width > targetWidth ||
-        video_dimensions.height > targetHeight
-      ) {
-        videoInput = await videoCrop({ videoInput });
-      }
-
-      console.log("Initializing temporary files");
-      fs.mkdirSync("temp");
-      fs.mkdirSync("temp/raw-frames");
-      fs.mkdirSync("temp/edited-frames");
-
-      console.log("Decoding");
-      await exec(`ffmpeg -i ${videoInput} temp/raw-frames/%d.png`);
-
       console.log("Rendering");
-      const testFolder = "temp/raw-frames";
-      const files = fs.readdirSync(testFolder);
 
       const authorName = quote.author.name;
       const authorImage = authorName.replace(" ", "_") + ".png";
 
       await maskAuthorImage(
         authorName,
-        `${properties.DIR_VIDEO_TEMP}/${authorImage}`
+        `${properties.DIR_VIDEO_TEST}/${authorImage}`
       );
 
       const t_spans = await generateTSpansFromQuote({
         quote: quote.phrase,
       });
 
-      const frames = [];
-      files.forEach((file) => {
-        frame_number = Number(file.replace(/\.[^/.]+$/, ""));
-        frames[frame_number] = `${testFolder}/${file}`;
-      });
-      const remainedFrames = halveFrameRate({ frames, framerate: video_fps });
-
-      const allFramesReady = remainedFrames.frames.map((frame) =>
+      const allFramesReady = frameList.map((frame) =>
         sharpText({
-          inputPath: `temp/raw-frames/${frame}`,
-          outputPath: `temp/edited-frames/${frame}`,
+          inputPath: `${rawFramesFolder}/${frame}`,
+          outputPath: `${editedFramesFolder}/${frame}`,
           t_spans,
           authorName,
         })
@@ -99,7 +86,7 @@ module.exports = {
       await Promise.all(allFramesReady);
 
       await exec(
-        `ffmpeg -r ${remainedFrames.framerate} -i temp/edited-frames/%d.png -i ${audio_cutted} -c:v libx265 -preset medium -x265-params "keyint=30:min-keyint=30:scenecut=0:open-gop=0:rc-lookahead=30:subme=0:crf=23:psy-rd=1.0:rdoq-level=2:qcomp=0.70" -r 30 -c:a aac -b:a 128k -movflags faststart -max_muxing_queue_size 9999 -vf "fps=${remainedFrames.framerate},format=yuv420p" -y ${videoOutput}`
+        `ffmpeg -r ${framerate} -i ${editedFramesFolder}/%d.png -i ${audio_cutted} -c:v libx265 -preset medium -x265-params "keyint=30:min-keyint=30:scenecut=0:open-gop=0:rc-lookahead=30:subme=0:crf=23:psy-rd=1.0:rdoq-level=2:qcomp=0.70" -r 30 -c:a aac -b:a 128k -movflags faststart -max_muxing_queue_size 9999 -vf "fps=${framerate},format=yuv420p" -y ${videoOutput}`
       );
       console.log("Cleaning up");
       deleteFolderRecursively("temp");
@@ -110,8 +97,8 @@ module.exports = {
 
       if (debug === false) {
         deleteFolderRecursively("temp");
-        deleteFolderRecursively(`${properties.DIR_VIDEO_TEMP}/audio_trimmed`);
-        deleteFolderRecursively(`${properties.DIR_VIDEO_TEMP}/videoOutput.mp4`);
+        deleteFolderRecursively(`${properties.DIR_VIDEO_TEST}/audio_trimmed`);
+        deleteFolderRecursively(`${properties.DIR_VIDEO_TEST}/videoOutput.mp4`);
       }
     }
   },
