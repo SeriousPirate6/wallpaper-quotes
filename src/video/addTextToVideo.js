@@ -1,5 +1,5 @@
-const util = require("util");
 const fs = require("fs");
+const util = require("util");
 const {
   mediaCut,
   getMiddleSecondsGap,
@@ -7,12 +7,14 @@ const {
   videoDimensions,
   videoCrop,
 } = require("./media-utility");
-const { sharpText, maskAuthorImage } = require("./trySharpImageEdit");
+const properties = require("../constants/properties");
+const { audioToMp3 } = require("../audio/audioConverter");
+const exec = util.promisify(require("child_process").exec);
+const { halveFrameRate } = require("./framesManipulations");
 const { getVideoFramesPerSecond } = require("./media-utility");
 const { deleteFolderRecursively } = require("../utility/media");
+const { sharpText, maskAuthorImage } = require("./trySharpImageEdit");
 const { generateTSpansFromQuote } = require("./generateTSpansFromQuote");
-const properties = require("../constants/properties");
-const exec = util.promisify(require("child_process").exec);
 
 const debug = false;
 
@@ -35,13 +37,16 @@ module.exports = {
         secondsToCut: duration,
       });
 
-      // const audio_cutted = await mediaCut({
-      //   mediaInput: audioInput,
-      //   mediaOutput: audioOutput,
-      //   startTime: audio_timestamps.init,
-      //   duration: audio_timestamps.duration,
-      //   threadCount: 2,
-      // });
+      const convertedFile = await audioToMp3({ audioInput, audioOutput });
+      // currently mantaining the original audio extensions, it doesn't seem to cause any problems
+
+      const audio_cutted = await mediaCut({
+        mediaInput: convertedFile,
+        mediaOutput: audioInput, // weird, but don't want to use a new name yet
+        startTime: audio_timestamps.init,
+        duration: audio_timestamps.duration,
+        threadCount: 2,
+      });
 
       const video_dimensions = await videoDimensions({ videoInput });
       if (
@@ -60,7 +65,8 @@ module.exports = {
       await exec(`ffmpeg -i ${videoInput} temp/raw-frames/%d.png`);
 
       console.log("Rendering");
-      const frames = fs.readdirSync("temp/raw-frames");
+      const testFolder = "temp/raw-frames";
+      const files = fs.readdirSync(testFolder);
 
       const authorName = quote.author.name;
       const authorImage = authorName.replace(" ", "_") + ".png";
@@ -74,7 +80,14 @@ module.exports = {
         quote: quote.phrase,
       });
 
-      const allFramesReady = frames.map((frame) =>
+      const frames = [];
+      files.forEach((file) => {
+        frame_number = Number(file.replace(/\.[^/.]+$/, ""));
+        frames[frame_number] = `${testFolder}/${file}`;
+      });
+      const remainedFrames = halveFrameRate({ frames, framerate: video_fps });
+
+      const allFramesReady = remainedFrames.frames.map((frame) =>
         sharpText({
           inputPath: `temp/raw-frames/${frame}`,
           outputPath: `temp/edited-frames/${frame}`,
@@ -86,7 +99,7 @@ module.exports = {
       await Promise.all(allFramesReady);
 
       await exec(
-        `ffmpeg -r ${video_fps} -i temp/edited-frames/%d.png -i ${audioInput} -c:v libx265 -preset medium -x265-params "keyint=30:min-keyint=30:scenecut=0:open-gop=0:rc-lookahead=30:subme=0:crf=23:psy-rd=1.0:rdoq-level=2:qcomp=0.70" -r 30 -c:a aac -b:a 128k -movflags faststart -max_muxing_queue_size 9999 -vf "fps=${video_fps},format=yuv420p" -y ${videoOutput}`
+        `ffmpeg -r ${remainedFrames.framerate} -i temp/edited-frames/%d.png -i ${audio_cutted} -c:v libx265 -preset medium -x265-params "keyint=30:min-keyint=30:scenecut=0:open-gop=0:rc-lookahead=30:subme=0:crf=23:psy-rd=1.0:rdoq-level=2:qcomp=0.70" -r 30 -c:a aac -b:a 128k -movflags faststart -max_muxing_queue_size 9999 -vf "fps=${remainedFrames.framerate},format=yuv420p" -y ${videoOutput}`
       );
       console.log("Cleaning up");
       deleteFolderRecursively("temp");

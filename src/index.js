@@ -41,7 +41,7 @@ const {
   decryptAndGetToken,
 } = require("./database/mdb-tokens");
 const { downloadAudio } = require("./freesound/sounds");
-const { audioToMp3, lightenVideo } = require("./convert-audio/audioConverter");
+const { audioToMp3 } = require("./audio/audioConverter");
 const { getMiddleSecondsGap, mediaCut } = require("./video/media-utility");
 
 const port = 3000;
@@ -162,8 +162,7 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
 
     try {
       const quote = await getRandomQuote();
-      // const media_description = sanitize(await getImageKeyWord(quote.q));
-      const media_description = "tiger";
+      const media_description = sanitize(await getImageKeyWord(quote.q));
 
       const media = !is_reel
         ? await searchPhoto({
@@ -178,10 +177,9 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
         video: is_reel ? media : null,
         media_description,
       });
-      // const quoteId = await insertQuote(db_quote);
+      const quoteId = await insertQuote(db_quote);
 
-      // if (quoteId) {
-      if (true) {
+      if (quoteId) {
         db_quote.id = 1;
 
         const media = !is_reel
@@ -391,38 +389,6 @@ app.get("/testAudioCut", async ({ res }) => {
 
 app.get("/testVideoCut", async ({ res }) => {
   try {
-    const outputFilePath = "light_video.mp4";
-
-    const videoObj = await searchVideo({ query: "zebra" });
-    const mediaUrl = videoObj.video_files.find(
-      (video) => video.width === 1080
-    ).link;
-
-    console.log(mediaUrl);
-
-    const videoPath = await downloadMedia({
-      mediaUrl,
-      outputPath: `downloaded_video`,
-    });
-
-    const midSeconds = await getMiddleSecondsGap({
-      mediaInput: videoPath,
-      secondsToCut: 8,
-    });
-
-    const light_video = await lightenVideo({
-      inputFilePath: videoPath,
-      outputFilePath,
-    });
-
-    const video_cutted = await mediaCut({
-      mediaInput: light_video,
-      mediaOutput: "trimmed-video.mp4",
-      startTime: midSeconds.init,
-      duration: 10,
-      threadCount: 2,
-    });
-
     res.send("you, did it, son");
   } catch (err) {
     console.log(err);
