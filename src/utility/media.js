@@ -94,14 +94,19 @@ module.exports = {
 
   deleteFile: (filePath) => {
     try {
-      fs.unlinkSync(filePath);
-      console.log("File deleted successfully: ", filePath);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log("File deleted successfully: ", filePath);
+      }
     } catch (error) {
       console.error("Error deleting file:", error);
     }
   },
 
   deleteFolderRecursively: (dir_output) => {
-    fs.rmSync(dir_output, { recursive: true });
+    if (fs.existsSync(dir_output)) {
+      console.log(`Deleting ${dir_output}...`);
+      fs.rmSync(dir_output, { recursive: true });
+    }
   },
 };

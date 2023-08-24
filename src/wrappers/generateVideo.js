@@ -44,7 +44,7 @@ module.exports = {
     });
 
     const audioInput = await downloadAudio({
-      query: "calming music",
+      query: "classical music",
       pathNoName: properties.DIR_VIDEO_TEST,
     });
 

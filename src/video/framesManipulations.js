@@ -95,21 +95,3 @@ module.exports = {
     }, []); // passing a custom param at the beginning of the function
   }),
 };
-
-// (async () => {
-//   const testFolder = "./1/";
-//   const frames = [];
-//   const files = fs.readdirSync(testFolder);
-//   files.forEach((file) => {
-//     frame_number = Number(file.replace(/\.[^/.]+$/, ""));
-//     frames[frame_number] = testFolder + file;
-//   });
-//   // const remainedFrames = halveFrameRate({ frames, framerate: 60 });
-//   const cutted_frames = extractFramesFromDuration({
-//     frames,
-//     framerate: 25,
-//     start: 2,
-//     duration: 11,
-//   });
-//   console.log("done");
-// })();

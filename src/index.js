@@ -7,11 +7,7 @@ const rateLimit = require("express-rate-limit");
 const { getImageKeyWord } = require("./openai");
 const { isLinuxOs } = require("./utility/getOS");
 const { getRandomQuote } = require("./zenquotes");
-const {
-  deleteFile,
-  downloadMedia,
-  deleteFolderRecursively,
-} = require("./utility/media");
+const { deleteFolderRecursively } = require("./utility/media");
 const { insertPost } = require("./database/mdb-ig");
 const properties = require("./constants/properties");
 const { sanitize } = require("./utility/stringUtils");
@@ -192,7 +188,7 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
 
       try {
         if (quoteId) {
-          db_quote.id = 1;
+          db_quote.id = quoteId;
 
           const media = !is_reel
             ? await generateImage({ db_quote })
@@ -205,6 +201,7 @@ app.get("/generateQuoteImage", defaultRateLimiter, async (req, res) => {
           });
 
           deleteFolderRecursively(properties.DIR_VIDEO_TEST);
+
           res.send({
             status: "success",
             message: "Media generated and uploaded correctly.",

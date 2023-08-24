@@ -197,7 +197,7 @@ module.exports = {
                           )
                       )
                     );
-                    // deleteFolderRecursively(properties.DIR_RESIZED);
+                    deleteFolderRecursively(properties.DIR_RESIZED);
                     resolve(
                       outputPath
                         ? outputPath
