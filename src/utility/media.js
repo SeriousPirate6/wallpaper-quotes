@@ -51,7 +51,7 @@ module.exports = {
           }
         });
       } catch (err) {
-        console.log(err);
+        console.log(`Error trying downloading ${mediaUrl}`, err);
         reject(err);
       }
     });

@@ -4,14 +4,10 @@ const {
   mediaCut,
   getMiddleSecondsGap,
   getMediaLength,
-  videoDimensions,
-  videoCrop,
 } = require("./media-utility");
 const properties = require("../constants/properties");
 const { audioToMp3 } = require("../audio/audioConverter");
 const exec = util.promisify(require("child_process").exec);
-const { halveFrameRate } = require("./framesManipulations");
-const { getVideoFramesPerSecond } = require("./media-utility");
 const { deleteFolderRecursively } = require("../utility/media");
 const { sharpText, maskAuthorImage } = require("./trySharpImageEdit");
 const { generateTSpansFromQuote } = require("./generateTSpansFromQuote");

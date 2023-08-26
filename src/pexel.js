@@ -40,8 +40,17 @@ module.exports = {
         })
       ).data?.videos;
 
-      const rand = Math.floor(Math.random() * response.length);
-      return response[rand];
+      const optimalResolutionVideos = response.filter(
+        (video) => video.width === 1080 || video.width === 720
+      );
+
+      if (optimalResolutionVideos.length === 0) {
+        console.log("\nPossible low resolution video.\n");
+        return response[0];
+      }
+
+      const rand = Math.floor(Math.random() * optimalResolutionVideos.length);
+      return optimalResolutionVideos[rand];
     } catch (error) {
       console.log(error);
     }
