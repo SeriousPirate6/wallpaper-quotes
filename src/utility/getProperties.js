@@ -11,7 +11,7 @@ module.exports = {
     const selectedVideo = video?.video_files.find(
       (video) => video.width === 1080 || video.width === 720
     );
-    const vid_props = selectedVideo ? selectedVideo : video.video_files[0];
+    const vid_props = selectedVideo ? selectedVideo : video?.video_files[0];
 
     return new Quote({
       phrase: quote.q,
