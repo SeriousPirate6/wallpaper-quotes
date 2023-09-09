@@ -1,5 +1,26 @@
 require("dotenv").config();
 const axios = require("axios");
+const { getRandomState } = require("../utility/stringUtils");
+
+checkIfTokenExpired = async ({ access_token }) => {
+  try {
+    await axios.get(process.env.IG_GRAPH_URL + `/me`, {
+      params: {
+        access_token,
+      },
+    });
+  } catch (error) {
+    if (error.response.data.error.code === 190) {
+      const state = getRandomState();
+      const login_url = `${process.env.FB_AUTH_URL}?client_id=${process.env.IG_APP_CLIENT_ID}&redirect_uri=${process.env.IG_REDIRECT_URL}&state=${state}`;
+      console.log(
+        "IG access token expired, generate a new one by loggin at this url:",
+        login_url
+      );
+      return true;
+    }
+  }
+};
 
 getPostId = async ({
   access_token,
@@ -8,6 +29,9 @@ getPostId = async ({
   caption,
   is_reel = false,
 }) => {
+  const isTokenExpired = await checkIfTokenExpired({ access_token });
+  if (isTokenExpired) process.exit(0);
+
   try {
     const response = (
       await axios.post(
@@ -31,6 +55,9 @@ getPostId = async ({
 };
 
 postMedia = async ({ access_token, creation_id, cooldownSeconds = 2 }) => {
+  const isTokenExpired = await checkIfTokenExpired({ access_token });
+  if (isTokenExpired) process.exit(0);
+
   return new Promise(async (resolve, reject) => {
     try {
       const post_media = await axios.post(
@@ -63,6 +90,9 @@ postMedia = async ({ access_token, creation_id, cooldownSeconds = 2 }) => {
 };
 
 checkPublishingLimits = async ({ access_token }) => {
+  const isTokenExpired = await checkIfTokenExpired({ access_token });
+  if (isTokenExpired) process.exit(0);
+
   const response = (
     await axios.get(
       process.env.IG_GRAPH_URL +

@@ -72,4 +72,9 @@ module.exports = {
 
     return keyValueMap;
   },
+
+  getRandomState: () => {
+    const randString = (Math.random() + 1).toString(36).substring(7);
+    return randString;
+  },
 };
